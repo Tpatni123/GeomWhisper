@@ -72,30 +72,14 @@ Open **http://127.0.0.1:7475** in Chrome or Edge.
 
 ## Usage
 
-1. **Hold the green mic button** and speak a command like:
-   - *"Change the color to red"*
-   - *"Add a title called Sales Analysis"*
-   - *"Switch to a bar chart"*
-   - *"Use theme dark"*
-   - *"Add a trend line"*
-   - *"Facet by cylinder count"*
+1. Press the **Space bar** to start speaking, then press **Space** again to stop.
+     Voice input is sent to the chat automatically. Voice controls work in Chrome
+     or Edge when the cursor is not in a text field.
 
-2. Or **type a command** in the text box and click Send.
+2. Or **type a command** in the chat box and click Send.
 
-3. The plot updates in real-time. Use **Undo** to revert and **Reset** to go back to the default.
-
-## Voice Commands Examples
-
-| Say this | What happens |
-|----------|-------------|
-| "change points to red" | `geom_point(color = "red")` |
-| "add a smooth line" | Adds `geom_smooth()` |
-| "title My Analysis" | Adds `ggtitle("My Analysis")` |
-| "use theme dark" | Switches to `theme_dark()` |
-| "flip coordinates" | Adds `coord_flip()` |
-| "increase point size" | Increases `size` parameter |
-| "remove legend" | Adds `theme(legend.position = "none")` |
-| "facet by gear" | Adds `facet_wrap(~gear)` |
+3. The plot updates in real time. Use **Undo** to revert and **Reset** to return
+     to the default plot.
 
 ## Rate Limits
 
