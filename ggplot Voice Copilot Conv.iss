@@ -51,9 +51,6 @@ Source: "www\speech.js"; DestDir: "{app}\www"; Flags: ignoreversion
 Source: "www\styles.css"; DestDir: "{app}\www"; Flags: ignoreversion
 Source: "skills\nature.md"; DestDir: "{app}\skills"; Flags: ignoreversion
 Source: "skills\apa.md"; DestDir: "{app}\skills"; Flags: ignoreversion
-Source: "images\jade wang.JPG"; DestDir: "{app}\images"; Flags: ignoreversion
-Source: "images\tushar patni.JPG"; DestDir: "{app}\images"; Flags: ignoreversion
-Source: "images\yimei li.JPG"; DestDir: "{app}\images"; Flags: ignoreversion
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent shellexec
