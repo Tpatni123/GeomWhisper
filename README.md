@@ -72,8 +72,8 @@ Open **http://127.0.0.1:7475** in Chrome or Edge.
 
 ## Usage
 
-1. Press the **Space bar** to start speaking, then press **Space** again to stop.
-     Voice input is sent to the chat automatically. Voice controls work in Chrome
+1. Press the **Space bar** to begin voice input. When recognition finishes, your
+     spoken command is sent to the chat automatically. Voice controls work in Chrome
      or Edge when the cursor is not in a text field.
 
 2. Or **type a command** in the chat box and click Send.
