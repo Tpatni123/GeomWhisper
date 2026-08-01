@@ -115,13 +115,6 @@ Rscript tests/offline_smoke.R
 
 This check validates core local helpers without requiring live API keys.
 
-Additional diagnostic scripts currently included in the repository:
-
-- `simple_test.R`
-- `test_real_tool_error.R`
-- `test_shinychat_with_tool.R`
-- `test_shinychat_ellmer_compatibility.R`
-
 ## Support and Contribution
 
 - Contribution guidance is in `CONTRIBUTING.md`.

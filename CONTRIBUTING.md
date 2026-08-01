@@ -40,21 +40,15 @@ shiny::runApp('.', port = 7475, host = '127.0.0.1', launch.browser = TRUE)
 
 The launcher and app bootstrap will install missing R packages on first start.
 
-## Current Verification Scripts
+## Verification
 
-Until the repository is migrated to a formal automated test layout, use the
-existing scripts as targeted smoke checks:
-
-- `simple_test.R`
-- `test_real_tool_error.R`
-- `test_shinychat_with_tool.R`
-- `test_shinychat_ellmer_compatibility.R`
-
-Run a script with:
+Run the offline smoke test:
 
 ```bat
-Rscript simple_test.R
+Rscript tests/offline_smoke.R
 ```
+
+This is the same verification run by the repository's GitHub Actions workflow.
 
 If your change affects launch, provider configuration, or plot updates, include
 the command you used to verify the behavior in your change notes.
