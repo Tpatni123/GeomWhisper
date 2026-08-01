@@ -51,10 +51,10 @@ Browser (Shiny UI)
 ### 2. Choose your LLM provider
 
 When you launch the app, select one:
-- **OpenAI** (gpt-4o) — Requires: [API key](https://platform.openai.com/api-keys)
-- **Anthropic** (Claude 3.5 Sonnet) — Requires: [API key](https://console.anthropic.com)
-- **Google Gemini** (Gemini 2.0 Flash) — Requires: [API key](https://aistudio.google.com/apikey)
-- **Ollama** (local, free) — Requires: [Ollama running locally](https://ollama.ai) (`ollama serve`)
+- **OpenAI** — Requires: [API key](https://platform.openai.com/api-keys)
+- **Anthropic** — Requires: [API key](https://console.anthropic.com)
+- **Google Gemini** — Requires: [API key](https://aistudio.google.com/apikey)
+- **Ollama** — Requires: [Ollama running locally](https://ollama.ai) (`ollama serve`)
 
 ### 3. Run
 
