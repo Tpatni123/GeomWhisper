@@ -6,6 +6,14 @@ voice-driven ggplot2 refinement powered by your choice of LLM provider.
 Voice-controlled ggplot2 modification is powered by your choice of LLM provider
 - OpenAI, Anthropic, Google Gemini, or a local Ollama model.
 
+## First Look
+
+![GeomWhisper showing the Dataset file picker and Initial Plot Code R-script picker.](images/geomwhisper-upload-workflow.png)
+
+Start a project by choosing **Upload File...** in **Dataset** and uploading your
+CSV, XLSX, XLS, or RDS data. Then upload an `.R` script in **Initial Plot Code**
+or paste ggplot2 code before asking GeomWhisper to refine the visualization.
+
 ## Architecture
 
 ```
