@@ -1,6 +1,7 @@
 # Manuscript is maintained separately until submission materials are finalized.
 paper/
 plan.md
+PREAMBLE_DEPS_DESIGN.md
 
 # Generated installers and local development state.
 installer_output/
