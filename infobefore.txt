@@ -1,0 +1,12 @@
+ggplot Voice Copilot — Multi-LLM Edition
+
+A conversational AI assistant for building and refining ggplot2 visualizations.
+Supports multiple LLM providers: OpenAI, Anthropic (Claude), Google Gemini,
+and Ollama (local).
+
+Requirements:
+  - R 4.4 or later (installer will download R 4.5.3 if needed)
+  - An API key for your chosen provider (or Ollama running locally)
+  - Chrome or Edge browser for voice input
+
+Icons made by Vectors Market from Flaticon are licensed by Creative Commons BY 3.0

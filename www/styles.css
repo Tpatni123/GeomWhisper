@@ -1,0 +1,216 @@
+/* www/styles.css — Custom overrides for ggplot Voice Copilot (conversational edition) */
+
+/* ── Voice hint pill (replaces the full voice button) ── */
+.voice-hint {
+  width: 100%;
+  padding: 8px 14px;
+  font-size: 0.88em;
+  font-weight: 500;
+  border: 1.5px solid #C8541A;
+  background-color: rgba(200,84,26,0.06);
+  color: #C4BFB5;
+  border-radius: 4px;
+  user-select: none;
+  -webkit-user-select: none;
+  text-align: center;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.voice-hint kbd {
+  background: #C8541A;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 0.85em;
+  font-family: inherit;
+}
+
+.voice-hint.listening {
+  background-color: #fdecea;
+  border-color: #E74C3C;
+  color: #c0392b;
+}
+
+.voice-hint.listening kbd {
+  background: #E74C3C;
+}
+
+@keyframes pulse-icon {
+  0%   { opacity: 1; }
+  50%  { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+
+/* ── Voice interim status bar (shows recognised text briefly) ── */
+.voice-interim {
+  min-height: 22px;
+  padding: 5px 10px;
+  background: rgba(200,84,26,0.06);
+  color: #C4BFB5;
+  border: 1px solid rgba(200,84,26,0.25);
+  border-radius: 4px;
+  font-family: "Fira Code", "Cascadia Code", monospace;
+  font-size: 0.82em;
+  margin-top: 4px;
+  word-wrap: break-word;
+}
+
+/* ── shinychat container sizing ── */
+.shinychat-container {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* ── Model / status badge ── */
+.agent-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.78em;
+  font-weight: 600;
+}
+
+.agent-badge.online  { background: #C8541A; color: #fff; }
+.agent-badge.offline { background: #E74C3C; color: #fff; }
+
+/* ── Error message ── */
+.error-msg {
+  background: #fdf2f2;
+  border: 1px solid #E74C3C;
+  color: #c0392b;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.88em;
+  margin-bottom: 8px;
+}
+
+/* ── Code display: monospace dark-on-white ── */
+.shiny-text-output {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-family: "Fira Code", "Cascadia Code", monospace;
+  font-size: 0.85em;
+  padding: 12px;
+  color: #2C3E50;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+/* ── Setup overlay (first-run PAT screen) ── */
+.setup-overlay {
+  position: fixed;
+  inset: 0;
+  background: #ecf0f1;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.setup-card {
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  padding: 40px;
+  width: 100%;
+  max-width: 460px;
+  text-align: center;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+}
+
+.setup-card h2 { font-weight: 700; color: #2C3E50; }
+.setup-card h5 { text-align: left; color: #2C3E50; margin-top: 16px; }
+.setup-card p  { text-align: left; color: #7f8c8d; }
+.setup-card a  { color: #C8541A; font-size: 0.85em; }
+
+/* ── Multi-plot thumbnail strip (vertical, right-side panel) ── */
+.thumb-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 2px 0;
+  scrollbar-width: thin;
+}
+
+.thumb-item {
+  cursor: pointer;
+  border-radius: 8px;
+  border: 2px solid #dee2e6;
+  padding: 4px;
+  background: #fff;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  user-select: none;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.thumb-item:hover {
+  border-color: #C8541A;
+  box-shadow: 0 2px 8px rgba(200,84,26,0.22);
+}
+
+.thumb-item.active {
+  border-color: #C8541A;
+  background: rgba(200,84,26,0.08);
+  box-shadow: 0 2px 10px rgba(200,84,26,0.28);
+}
+
+.thumb-label {
+  text-align: center;
+  font-size: 0.75em;
+  color: #2C3E50;
+  margin-top: 4px;
+  font-family: "Fira Code", "Cascadia Code", monospace;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+/* ── Authors modal — stacked names ── */
+.authors-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 24px 20px;
+}
+
+.author-entry {
+  text-align: center;
+}
+
+.author-name {
+  font-family: 'Dancing Script', cursive;
+  font-size: 2.1em;
+  font-weight: 700;
+  color: #C8541A;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  display: inline-block;
+  transition: color 0.18s;
+}
+
+.author-entry a:hover .author-name {
+  color: #A03D12;
+}
+
+.author-rule {
+  width: 56px;
+  height: 1px;
+  background: linear-gradient(to right, transparent, #C8541A, transparent);
+  margin: 14px auto;
+}
+
+/* ═══════════════════════════════════════════════════
+   Call of Duty (Tactical) Theme — fallback layer
+   Primary overrides are in bs_add_rules() in ui.R
+═══════════════════════════════════════════════════ */
+
+.thumb-label {
+  color: #E8B068;
+}

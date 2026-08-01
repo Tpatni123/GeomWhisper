@@ -1,0 +1,26 @@
+name: R review checks
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  offline-smoke:
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+
+      - name: Install app dependencies
+        shell: pwsh
+        run: |
+          Rscript -e "pkgs <- c('shiny','ggplot2','shinyjs','jsonlite','bslib','ellmer','coro','promises','readxl','magick','shinychat'); install.packages(pkgs, repos = c('https://cloud.r-project.org','https://cran.rstudio.com','https://posit.r-universe.dev'))"
+
+      - name: Run offline smoke test
+        shell: pwsh
+        run: |
+          Rscript tests/offline_smoke.R

@@ -1,0 +1,48 @@
+=== chat_openai ===
+function (system_prompt = NULL, base_url = "https://api.openai.com/v1", 
+    api_key = NULL, credentials = NULL, model = NULL, params = NULL, 
+    api_args = list(), api_headers = character(), service_tier = c("auto", 
+        "default", "flex", "priority"), echo = c("none", "output", 
+        "all")) 
+NULL 
+
+=== chat_claude ===
+function (system_prompt = NULL, params = NULL, model = NULL, 
+    cache = c("5m", "1h", "none"), api_args = list(), base_url = "https://api.anthropic.com/v1", 
+    beta_headers = character(), api_key = NULL, credentials = NULL, 
+    api_headers = character(), echo = NULL) 
+NULL 
+
+=== chat_ollama ===
+function (system_prompt = NULL, base_url = Sys.getenv("OLLAMA_BASE_URL", 
+    "http://localhost:11434"), model, params = NULL, api_args = list(), 
+    echo = NULL, api_key = NULL, credentials = NULL, api_headers = character()) 
+NULL 
+
+=== tool ===
+function (fun, description, ..., arguments = list(), name = NULL, 
+    convert = TRUE, annotations = list(), .name = deprecated(), 
+    .description = deprecated(), .convert = deprecated(), .annotations = deprecated()) 
+NULL 
+
+=== chat_gemini exists? ===
+FALSE 
+Found: chat_google_gemini 
+Found: chat_google_gemini_test 
+Found: chat_google_vertex 
+Found: default_google_credentials 
+Found: gemini_client 
+Found: google_location 
+Found: google_oauth_reset 
+Found: google_tool_web_fetch 
+Found: google_tool_web_search 
+Found: google_upload 
+Found: google_upload_init 
+Found: google_upload_send 
+Found: google_upload_status 
+Found: google_upload_wait 
+Found: merge_gemini_chunks 
+Found: models_google 
+Found: models_google_gemini 
+Found: models_google_vertex 
+Found: ProviderGoogleGemini 

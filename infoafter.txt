@@ -1,0 +1,16 @@
+Installation complete!
+
+To start ggplot Voice Copilot (Multi-LLM edition):
+  1. Launch the app from the Start Menu or Desktop shortcut.
+  2. Select your LLM provider and enter the corresponding API key
+     (or select Ollama if running locally with `ollama serve`).
+  3. Chat with the AI to explore and refine your ggplot2 visualization.
+  4. Press Space (when not typing) for hands-free voice input.
+
+Supported providers:
+  - OpenAI         (sk-... key)              https://platform.openai.com/api-keys
+  - Anthropic      (sk-ant-... key)         https://console.anthropic.com
+  - Google Gemini  (AIza... key)            https://aistudio.google.com/apikey
+  - Ollama         (no key needed)          https://ollama.ai
+
+Icons made by Vectors Market from Flaticon are licensed by Creative Commons BY 3.0

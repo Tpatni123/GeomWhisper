@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+title: GeomWhisper
+message: If you use GeomWhisper in research, please cite the software using this metadata.
+type: software
+authors:
+  - given-names: Tushar
+    family-names: Patni
+license: GPL-3.0-only
+abstract: >-
+  GeomWhisper is a locally runnable Shiny application for conversational and
+  voice-driven refinement of ggplot visualizations using multiple large
+  language model providers.
+keywords:
+  - R
+  - Shiny
+  - ggplot2
+  - data visualization
+  - large language models
+  - voice interface

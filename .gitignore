@@ -1,0 +1,10 @@
+# Manuscript is maintained separately until submission materials are finalized.
+paper/
+
+# Generated installers and local development state.
+installer_output/
+.Rhistory
+.RData
+.Rproj.user/
+.vscode/
+.DS_Store
