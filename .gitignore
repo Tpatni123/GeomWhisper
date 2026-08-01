@@ -1,5 +1,6 @@
 # Manuscript is maintained separately until submission materials are finalized.
 paper/
+plan.md
 
 # Generated installers and local development state.
 installer_output/
