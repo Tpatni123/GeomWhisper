@@ -10,9 +10,12 @@ Voice-controlled ggplot2 modification is powered by your choice of LLM provider
 
 ![GeomWhisper showing the Dataset file picker and Initial Plot Code R-script picker.](images/geomwhisper-upload-workflow.png)
 
-Start a project by choosing **Upload File...** in **Dataset** and uploading your
-CSV, XLSX, XLS, or RDS data. Then upload an `.R` script in **Initial Plot Code**
-or paste ggplot2 code before asking GeomWhisper to refine the visualization.
+Start a project by choosing **Upload File...** in **Dataset** and uploading one
+or more CSV, XLSX, XLS, or RDS files. The first file is available as `user_data`;
+each uploaded file is also available under a valid R variable name derived from
+its filename and shown in the Dataset panel. Then upload an `.R` script in
+**Initial Plot Code** or paste ggplot2 code before asking GeomWhisper to refine
+the visualization.
 
 ## Architecture
 
@@ -43,10 +46,11 @@ Browser (Shiny UI)
 ### 1. Installation
 
 **Windows:** Run the installer (`setup_ggplot Voice Copilot (Multi-LLM).exe`)
-- Automatically installs the latest R from CRAN if needed (R 4.4+ required)
-- Auto-installs all required R packages
+- Detects compatible R installations and, when needed, offers to download the latest R from CRAN (R 4.4+ required; internet access is required)
+- Installs missing R packages when the app first starts (CRAN access required)
 
-**Manual installation:** R packages are auto-installed on first startup
+**Manual installation:** Install R 4.4 or later. Missing R packages are
+installed on first startup when an internet connection is available.
 
 ### 2. Choose your LLM provider
 
@@ -70,6 +74,13 @@ Rscript -e "shiny::runApp('.', port = 7475, host = '127.0.0.1', launch.browser =
 
 Open **http://127.0.0.1:7475** in Chrome or Edge.
 
+## Data and Plot Code
+
+- Upload requests are limited to 50 MB. You can upload multiple CSV, XLSX, XLS, or RDS files in one selection.
+- Excel files load their first sheet by default. For additional sheets in the first uploaded Excel file, use `readxl::read_excel(user_data_path, sheet = "SheetName")` in plot code.
+- A single plot script must assign a ggplot object to `p` or end with a bare `ggplot(...)` expression. Scripts may define multiple ggplot objects; the app exposes them as selectable figures.
+- Export the active plot as PNG, PDF, or SVG from the **Export Plot** panel.
+
 ## Usage
 
 1. Press the **Space bar** to begin voice input. When recognition finishes, your
@@ -81,13 +92,24 @@ Open **http://127.0.0.1:7475** in Chrome or Edge.
 3. The plot updates in real time. Use **Undo** to revert and **Reset** to return
      to the default plot.
 
+## Local Settings and Code Execution
+
+Provider settings, including API keys, are saved in a local R user configuration
+file so they can be restored on the next launch. The file is JSON and is not
+encrypted; use an operating-system account you trust and revoke or rotate keys
+that may have been exposed.
+
+The app evaluates uploaded and model-generated R code in its local R process to
+render plots. Only upload scripts and use model providers that you trust.
+
 ## Rate Limits
 
-Each provider has different rate limits:
-- **OpenAI**: See [pricing](https://openai.com/pricing)
-- **Anthropic**: See [pricing](https://www.anthropic.com/pricing)
-- **Google Gemini**: Free tier available
-- **Ollama**: Unlimited (runs locally)
+Provider pricing and quotas change over time. Consult the current provider
+documentation for [OpenAI](https://openai.com/pricing),
+[Anthropic](https://www.anthropic.com/pricing), and
+[Google Gemini](https://ai.google.dev/gemini-api/docs/pricing). Ollama has no
+hosted-provider quota, but local capacity depends on the selected model and
+your hardware.
 
 ## Reviewer-Friendly Verification
 
