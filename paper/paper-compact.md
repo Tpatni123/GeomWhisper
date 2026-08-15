@@ -153,6 +153,14 @@ includes an offline smoke test that verifies local helper functions and safe
 evaluation of valid and invalid `ggplot2` code without requiring live API keys.
 A direct `shiny::runApp()` launch remains available for other platforms.
 
+To adapt an existing script, users refer to a single uploaded dataset as
+`user_data`; when several files are uploaded, each is also available through a
+sanitized filename-derived variable shown in the Dataset panel. A single plot
+should be assigned to `p` (or left as the final `ggplot()` expression), whereas
+multi-plot scripts use distinct named `ggplot` objects. A downloadable
+script-preparation prompt guides users in replacing file reads with these
+variables and removing display or export calls before the script is loaded.
+
 The screenshots below show a complete running example. On launch, GeomWhisper
 displays its bundled `mtcars` scatter plot (Figure 1). A user then enters a
 request to recolor the points and update the title (Figure 2). The application

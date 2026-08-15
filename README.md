@@ -78,6 +78,28 @@ Rscript -e "shiny::runApp('.', port = 7475, host = '127.0.0.1', launch.browser =
 Open **http://127.0.0.1:7475**. Chrome or Edge is required only for voice
 input; use any supported browser for typed chat.
 
+## Prepare an Existing R Script
+
+Use the **Download Script-Prep Prompt** button in **Initial Plot Code** when
+you have an existing R script that needs to be adapted for GeomWhisper. Paste
+the downloaded prompt and your script into an AI assistant you trust, then
+review the returned script before uploading or pasting it into the app.
+
+The prompt asks the assistant to make the script compatible with GeomWhisper:
+
+- replace file-loading code and hardcoded paths with the uploaded-data variables;
+- use `user_data` for the first uploaded dataset and the variable names shown
+     in the Dataset panel for additional datasets;
+- assign a single plot to `p`, or use descriptive names for multiple plot
+     objects;
+- remove interactive display and export calls such as `print()`, `ggsave()`,
+     `pdf()`, `png()`, and `dev.off()`.
+
+This helper prepares code; it does not validate that an AI-generated analysis
+is statistically correct. Inspect the result, test it on appropriate data, and
+do not paste patient-level data, secrets, or other sensitive content into an
+external AI service unless that use is approved for your environment.
+
 ## Data and Plot Code
 
 - Uploads are limited to 50 MB. You can upload multiple CSV, XLSX, XLS, or RDS
