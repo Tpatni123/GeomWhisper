@@ -24,7 +24,7 @@ affiliations:
   - index: 2
     name: Department of Statistics, Texas A&M University, United States
 date: 23 May 2026
-bibliography: paper/paper.bib
+bibliography: paper.bib
 ---
 
 # Summary

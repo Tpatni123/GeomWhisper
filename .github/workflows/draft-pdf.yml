@@ -3,13 +3,13 @@ name: Draft PDF
 on:
   push:
     paths:
-      - paper/paper.md
+      - paper/paper-compact.md
       - paper/paper.bib
       - paper/images/**
       - .github/workflows/draft-pdf.yml
   pull_request:
     paths:
-      - paper/paper.md
+      - paper/paper-compact.md
       - paper/paper.bib
       - paper/images/**
       - .github/workflows/draft-pdf.yml
@@ -27,7 +27,7 @@ jobs:
         uses: openjournals/openjournals-draft-action@master
         with:
           journal: joss
-          paper-path: paper/paper.md
+          paper-path: paper/paper-compact.md
 
       - name: Upload paper artifact
         uses: actions/upload-artifact@v4
