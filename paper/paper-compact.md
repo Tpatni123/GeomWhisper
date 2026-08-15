@@ -161,13 +161,13 @@ applied changes (Figure 3).
 
 ![Figure 1. Initial GeomWhisper session with the default `mtcars` scatter plot.
 The left panel shows the active provider, voice shortcut, chat input, and dataset
-controls.](paper/images/geomwhisper_initial_state.png)
+controls.](images/geomwhisper_initial_state.png)
 
 ![Figure 2. A typed request asks GeomWhisper to change the point color to dark
-orange and update the plot title.](paper/images/geomwhisper_change_request.png)
+orange and update the plot title.](images/geomwhisper_change_request.png)
 
 ![Figure 3. The completed request: the preview shows dark-orange points and the
-revised title, while the chat reports the changes applied.](paper/images/geomwhisper_change_applied.png)
+revised title, while the chat reports the changes applied.](images/geomwhisper_change_applied.png)
 
 # Research impact statement
 
