@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.5.57">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="dcterms.date" content="2026-05-23">
+
+<title>GeomWhisper: conversational and voice-driven refinement of ggplot visualizations</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="paper-compact_files/libs/clipboard/clipboard.min.js"></script>
+<script src="paper-compact_files/libs/quarto-html/quarto.js"></script>
+<script src="paper-compact_files/libs/quarto-html/popper.min.js"></script>
+<script src="paper-compact_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="paper-compact_files/libs/quarto-html/anchor.min.js"></script>
+<link href="paper-compact_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="paper-compact_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="paper-compact_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="paper-compact_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="paper-compact_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">GeomWhisper: conversational and voice-driven refinement of ggplot visualizations</h1>
+</div>
+
+
+<div class="quarto-title-meta-author">
+  <div class="quarto-title-meta-heading">Authors</div>
+  <div class="quarto-title-meta-heading">Affiliations</div>
+  
+    <div class="quarto-title-meta-contents">
+    <p class="author">Tushar Patni </p>
+  </div>
+  <div class="quarto-title-meta-contents">
+        <p class="affiliation">
+            1
+          </p>
+      </div>
+    <div class="quarto-title-meta-contents">
+    <p class="author">Jade Wang </p>
+  </div>
+  <div class="quarto-title-meta-contents">
+        <p class="affiliation">
+            2
+          </p>
+      </div>
+    <div class="quarto-title-meta-contents">
+    <p class="author">Yimei Li </p>
+  </div>
+  <div class="quarto-title-meta-contents">
+        <p class="affiliation">
+            1
+          </p>
+      </div>
+  </div>
+
+<div class="quarto-title-meta">
+
+      
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">May 23, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="summary" class="level1">
+<h1>Summary</h1>
+<p>Researchers often need to iterate quickly on statistical graphics while talking through revisions with clinical or scientific collaborators. In practice, small changes to colors, annotations, smoothing layers, faceting, themes, or chart types frequently require repeated back-and-forth between a subject-matter expert and a statistical programmer or biostatistician editing <code>ggplot2</code> code <span class="citation" data-cites="wickham2016ggplot2">(<a href="#ref-wickham2016ggplot2" role="doc-biblioref">Wickham 2016</a>)</span>.</p>
+<p>GeomWhisper is a locally runnable Shiny application that shortens this loop by letting users speak or type natural-language requests to modify a <code>ggplot2</code> visualization <span class="citation" data-cites="shiny">(<a href="#ref-shiny" role="doc-biblioref">Chang et al. 2026</a>)</span>. The application combines browser-based speech capture, a multi-provider large language model (LLM) layer built on <code>ellmer</code> <span class="citation" data-cites="ellmer2025">(<a href="#ref-ellmer2025" role="doc-biblioref">Posit Software, PBC 2025</a>)</span>, and an R tool-calling pipeline that converts user requests into plot-editing code and updates the visualization through a streaming chat interface provided by <code>shinychat</code> <span class="citation" data-cites="shinychat2026">(<a href="#ref-shinychat2026" role="doc-biblioref">Sievert and Cheng 2026</a>)</span>. GeomWhisper is intended for researchers, scientists, and doctors who need a lower-friction way to refine figures during collaborative analysis sessions, including teams whose analyses use <code>ggplot2</code>.</p>
+</section>
+<section id="statement-of-need" class="level1">
+<h1>Statement of need</h1>
+<p><code>ggplot2</code> is widely used in research because it is expressive, reproducible, and well integrated with data-analysis workflows in R <span class="citation" data-cites="wickham2016ggplot2">(<a href="#ref-wickham2016ggplot2" role="doc-biblioref">Wickham 2016</a>)</span>. Those same strengths create a practical bottleneck in collaborative figure review. When a clinician, scientist, or domain collaborator wants to try a different title, color mapping, smoother, facet variable, or plot type, the change often depends on direct code edits rather than on the collaborator’s own domain language. This can slow down exploratory work and shift figure refinement into a serial workflow mediated by the analyst.</p>
+<p>GeomWhisper addresses this problem in three complementary ways. First, it ships as a standalone Windows application with a self-contained installer and launcher that automatically provisions the R runtime, when needed, and required R packages in the background. Users do not need to install, open, or use RStudio, or manage R packages manually; uploading an R script and a data file is sufficient to produce and refine a publication-quality <code>ggplot2</code> figure. Second, by giving subject-matter experts a direct conversational interface for requesting changes, it removes the dependency on a biostatistician or statistical programmer as an intermediary for every incremental revision. Rather than the current serial workflow—where a collaborator describes a desired change, an analyst implements it in code, and the updated figure is returned for review—researchers can request and see the change in the same conversation, reducing a multi-step relay to a single spoken or typed request. Third, uploaded datasets remain in the local R session. The standard LLM prompt does not automatically include data-frame values; it supplies the user’s request and current plot code instead. This prompt-minimization design supports clinical workflows where sharing patient-level records with external services is often prohibited or requires burdensome governance approval.</p>
+<p>Existing language-assisted and GUI-based tools lower the syntax barrier, but they usually assume that the person invoking them is already operating inside the R ecosystem: installing a package, configuring an API key, launching a Shiny app, or working in an editor such as RStudio or Positron <span class="citation" data-cites="ggplotwithyourdata2026 ggbot22026 ggx2021">(<a href="#ref-ggplotwithyourdata2026" role="doc-biblioref">smouksassi 2026</a>; <a href="#ref-ggbot22026" role="doc-biblioref">Cheng, Altman, and Vaughan 2026</a>; <a href="#ref-ggx2021" role="doc-biblioref">Brandmaier 2021</a>)</span>. GeomWhisper instead targets collaborators who may never open an IDE at all.</p>
+<p>The software is designed for researchers, scientists, and doctors working with teams whose analyses use R graphics, but who want a faster conversational layer for changing plots during analysis review, figure design, or collaborative interpretation. In ongoing use, the software has been applied in collaborative work involving oncologists, radiation therapists, and other scientific researchers, where rapid plot revision is valuable for both analysis discussion and figure preparation.</p>
+</section>
+<section id="state-of-the-field" class="level1">
+<h1>State of the field</h1>
+<p>Researchers already have several ways to lower the barrier to working with <code>ggplot2</code> graphics. GUI-based builders such as <code>esquisse</code> <span class="citation" data-cites="esquisse2026">(<a href="#ref-esquisse2026" role="doc-biblioref">Meyer and Perrier 2026</a>)</span> and the earlier Shiny application <code>ggplotwithyourdata</code> <span class="citation" data-cites="ggplotwithyourdata2026">(<a href="#ref-ggplotwithyourdata2026" role="doc-biblioref">smouksassi 2026</a>)</span> let users upload data, choose geoms, adjust mappings, and export plots through widgets rather than code. These tools reduce syntax burden, but they are centered on GUI-driven plot construction and option selection, not conversational revision of a user-supplied plotting script that is already under discussion.</p>
+<p>At the other end of the spectrum, <code>ggx</code> <span class="citation" data-cites="ggx2021">(<a href="#ref-ggx2021" role="doc-biblioref">Brandmaier 2021</a>)</span> provides a natural-language interface to common <code>ggplot2</code> styling operations such as hiding legends or rotating axis labels. Its design is intentionally lightweight: it uses keyword matching rather than an LLM and serves mainly as a helper for users already writing <code>ggplot2</code> code, not as a live multi-turn application with voice input, maintained plot state, or local tool-calling.</p>
+<p>A recent experimental package, <code>ggbot2</code> <span class="citation" data-cites="ggbot22026">(<a href="#ref-ggbot22026" role="doc-biblioref">Cheng, Altman, and Vaughan 2026</a>)</span>, comes closest to GeomWhisper in interaction style. It launches a Shiny app that lets users create and modify plots with spoken or typed commands, but its documented workflow assumes an R user who can install the package, configure an OpenAI API key, and launch the app from an active R session.</p>
+<p>Generic LLM interfaces such as ChatGPT <span class="citation" data-cites="chatgpt2026">(<a href="#ref-chatgpt2026" role="doc-biblioref">OpenAI 2026</a>)</span> can also propose plotting code, but they operate outside the local R session, do not preserve the exact live plot state under review, and cannot be tested by a reviewer as a self-contained application.</p>
+<p>GeomWhisper sits within this emerging ecosystem but targets a narrower and more operationally constrained use case. We are not aware of another open-source tool that combines local-first execution where raw data stay on the user’s machine, multi-provider routing including local models, live editing of user-supplied <code>ggplot2</code> code inside a running Shiny session, both voice and typed chat interaction, and installer-based desktop distribution for collaborators who may not use R or RStudio.</p>
+</section>
+<section id="software-design" class="level1">
+<h1>Software design</h1>
+<p>GeomWhisper is a local-first Shiny application: the interface, dataset, and plot rendering stay in the user’s R session. The standard LLM context contains the user’s request and current plot code, rather than automatically including uploaded data-frame values. This prompt-minimization boundary, rather than the selected LLM provider, protects the underlying data. Browser speech capture and typed chat feed the same conversational workflow, so voice improves in-person collaboration without excluding reviewers or users who cannot use speech input. <code>ellmer</code> provides a common interface to OpenAI, Anthropic, Google Gemini, and Ollama <span class="citation" data-cites="ellmer2025">(<a href="#ref-ellmer2025" role="doc-biblioref">Posit Software, PBC 2025</a>)</span>, letting teams select a cloud provider or a locally running model according to cost and connectivity needs.</p>
+<p>Each request is handled through a constrained tool-calling workflow that revises and evaluates plot code in an isolated environment before the live figure is updated. The application preserves multi-turn context, supports scripts with multiple plots, and keeps an undoable history so collaborators can safely compare alternative views. It prompts the assistant to flag changes to aesthetics, statistical methods, or data filters for user review. A Windows installer and launcher bootstrap R dependencies and start the local session, while the repository includes an offline smoke test that verifies local helper functions and safe evaluation of valid and invalid <code>ggplot2</code> code without requiring live API keys. A direct <code>shiny::runApp()</code> launch remains available for other platforms.</p>
+<p>The screenshots below show a complete running example. On launch, GeomWhisper displays its bundled <code>mtcars</code> scatter plot (Figure 1). A user then enters a request to recolor the points and update the title (Figure 2). The application evaluates the revision and refreshes the plot preview; the chat reports the applied changes (Figure 3).</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="images/geomwhisper_initial_state.png" class="img-fluid figure-img"></p>
+<figcaption>Figure 1. Initial GeomWhisper session with the default <code>mtcars</code> scatter plot. The left panel shows the active provider, voice shortcut, chat input, and dataset controls.</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="images/geomwhisper_change_request.png" class="img-fluid figure-img"></p>
+<figcaption>Figure 2. A typed request asks GeomWhisper to change the point color to dark orange and update the plot title.</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="images/geomwhisper_change_applied.png" class="img-fluid figure-img"></p>
+<figcaption>Figure 3. The completed request: the preview shows dark-orange points and the revised title, while the chat reports the changes applied.</figcaption>
+</figure>
+</div>
+</section>
+<section id="research-impact-statement" class="level1">
+<h1>Research impact statement</h1>
+<p>GeomWhisper’s research impact is to keep figure refinement inside an R-based workflow while making routine plot changes accessible through natural-language interaction. Requested revisions are evaluated in the active Shiny session and update the displayed <code>ggplot2</code> figure directly. An undoable session history lets collaborators compare alternative figure revisions without having to write or edit R code themselves.</p>
+<p>The data-governance benefit comes from the application’s prompt boundary, not from the chosen provider: uploaded data-frame values remain local and are not automatically included in standard LLM context. The multi-provider design has a separate practical benefit: a locally running Ollama model offers a cost- efficient option for teams with limited cloud access while retaining the same conversational interface.</p>
+<p>The immediate impact is workflow-level: the software lowers the amount of direct code editing required for routine figure revisions while preserving an R-based analysis environment. The repository supports reuse through an offline smoke test, local launcher support, contribution guidance, and multi-provider execution paths. These features allow research teams to evaluate the application in their own analysis settings without requiring RStudio or embedding their plotting workflow in an external chat service.</p>
+</section>
+<section id="ai-usage-disclosure" class="level1">
+<h1>AI usage disclosure</h1>
+<p>GitHub Copilot (Claude Sonnet 4.6) assisted with portions of software development, documentation revision, repository preparation, and drafting support for this manuscript. All AI-assisted outputs were reviewed, edited, and validated by the human authors, who retained responsibility for the software design, the research framing, and the correctness of the manuscript.</p>
+</section>
+<section id="acknowledgements" class="level1">
+<h1>Acknowledgements</h1>
+<p>The authors thank the collaborators whose figure-review workflows helped shape the design goals for GeomWhisper, especially the need for fast, conversational iteration on <code>ggplot2</code> figures during active research discussions.</p>
+</section>
+<section id="references" class="level1 unnumbered">
+
+
+</section>
+
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
+<div id="ref-ggx2021" class="csl-entry" role="listitem">
+Brandmaier, Andreas M. 2021. <em>Ggx: A Natural Language Interface to ’Ggplot2’</em>. <a href="https://CRAN.R-project.org/package=ggx">https://CRAN.R-project.org/package=ggx</a>.
+</div>
+<div id="ref-shiny" class="csl-entry" role="listitem">
+Chang, Winston, Joe Cheng, J. J. Allaire, Carson Sievert, Barret Schloerke, Yihui Xie, Jonathan Allen, Jonathan McPherson, Alan Dipert, and Barbara Borges. 2026. <em>Shiny: Web Application Framework for r</em>. <a href="https://shiny.posit.co/">https://shiny.posit.co/</a>.
+</div>
+<div id="ref-ggbot22026" class="csl-entry" role="listitem">
+Cheng, Joe, Sara Altman, and Davis Vaughan. 2026. <em>Ggbot2: Voice Assistant for Ggplot2</em>. <a href="https://github.com/tidyverse/ggbot2">https://github.com/tidyverse/ggbot2</a>.
+</div>
+<div id="ref-esquisse2026" class="csl-entry" role="listitem">
+Meyer, Fanny, and Victor Perrier. 2026. <em>Esquisse: Explore and Visualize Your Data Interactively</em>. <a href="https://cran.r-project.org/package=esquisse">https://cran.r-project.org/package=esquisse</a>.
+</div>
+<div id="ref-chatgpt2026" class="csl-entry" role="listitem">
+OpenAI. 2026. <span>“ChatGPT.”</span> Software. <a href="https://chatgpt.com/">https://chatgpt.com/</a>.
+</div>
+<div id="ref-ellmer2025" class="csl-entry" role="listitem">
+Posit Software, PBC. 2025. <em>Ellmer: Chat with Large Language Models</em>. <a href="https://ellmer.tidyverse.org/">https://ellmer.tidyverse.org/</a>.
+</div>
+<div id="ref-shinychat2026" class="csl-entry" role="listitem">
+Sievert, Carson, and Joe Cheng. 2026. <em>Shinychat: Chat Components for Shiny</em>. <a href="https://posit-dev.github.io/shinychat/">https://posit-dev.github.io/shinychat/</a>.
+</div>
+<div id="ref-ggplotwithyourdata2026" class="csl-entry" role="listitem">
+smouksassi. 2026. <span>“Ggplotwithyourdata: R Shiny App as a Handy Interface to Ggplot2.”</span> GitHub repository. <a href="https://github.com/smouksassi/ggplotwithyourdata">https://github.com/smouksassi/ggplotwithyourdata</a>.
+</div>
+<div id="ref-wickham2016ggplot2" class="csl-entry" role="listitem">
+Wickham, Hadley. 2016. <em>Ggplot2: Elegant Graphics for Data Analysis</em>. 2nd ed. New York: Springer-Verlag. <a href="https://doi.org/10.1007/978-3-319-24277-4">https://doi.org/10.1007/978-3-319-24277-4</a>.
+</div>
+</div></section></div></main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    // For code content inside modals, clipBoardJS needs to be initialized with a container option
+    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
