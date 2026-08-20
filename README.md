@@ -42,16 +42,15 @@ Browser (Shiny UI)
 
 ## Quick Start
 
-### 1. Installation
+### 1. Install and launch (Windows)
 
 **Windows:** Run [GeomWhisper-Setup-1.0.0.exe](installer/GeomWhisper-Setup-1.0.0.exe).
 
-- Detects installed R versions. GeomWhisper requires R 4.4 or later.
-- Installs missing R packages on first launch. Internet access is required when
-     packages are missing.
-
-**Manual installation:** Install R 4.4 or later. The app installs its missing
-R packages on first startup when an internet connection is available.
+- Detects whether R 4.4 or later is installed and, when necessary, offers to
+     download and install the current R release from CRAN.
+- Launches GeomWhisper after installation. On its first launch, the application
+     installs any missing R packages; this can take several minutes and requires
+     internet access.
 
 ### 2. Choose your LLM provider
 
@@ -62,21 +61,6 @@ When you launch the app, select one:
 - **Ollama** — Requires [Ollama](https://ollama.ai) running locally and the
      selected model installed, for example `ollama pull llama3.1` followed by
      `ollama serve`.
-
-### 3. Run
-
-**Windows:**
-```cmd
-start.bat
-```
-
-**Manual (any OS, from the project root):**
-```bash
-Rscript -e "shiny::runApp('.', port = 7475, host = '127.0.0.1', launch.browser = TRUE)"
-```
-
-Open **http://127.0.0.1:7475**. Chrome or Edge is required only for voice
-input; use any supported browser for typed chat.
 
 ## Prepare an Existing R Script
 

@@ -87,10 +87,9 @@ collaborators who may never open an IDE at all.
 The software is designed for researchers, scientists, and doctors working with
 teams whose analyses use R graphics, but who want a faster conversational layer
 for changing plots during analysis review, figure design, or collaborative
-interpretation. In ongoing use, the software has been applied in collaborative
-work involving oncologists, radiation therapists, and other scientific
-researchers, where rapid plot revision is valuable for both analysis discussion
-and figure preparation.
+interpretation. The software has been discussed with researchers, and
+we have begun working with additional clinical and scientific collaborators to
+introduce GeomWhisper into their figure-review workflows.
 
 # State of the field
 
@@ -136,9 +135,9 @@ rendering stay in the user’s R session. The standard LLM context contains the
 user's request and current plot code, rather than automatically including
 uploaded data-frame values. This prompt-minimization boundary, rather than the
 selected LLM provider, protects the underlying data.
-Browser speech capture and typed chat feed the same conversational workflow, so
-voice improves in-person collaboration without excluding reviewers or users who
-cannot use speech input. `ellmer` provides a common interface to OpenAI,
+Browser-based speech capture and typed chat use the same conversational
+workflow, allowing users to choose the input method that best suits their
+setting and accessibility needs. `ellmer` provides a common interface to OpenAI,
 Anthropic, Google Gemini, and Ollama [@ellmer2025], letting teams select a cloud
 provider or a locally running model according to cost and connectivity needs.
 
