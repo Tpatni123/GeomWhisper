@@ -44,7 +44,7 @@ Browser (Shiny UI)
 
 ### 1. Install and launch (Windows)
 
-**Windows:** Run [GeomWhisper-Setup-1.0.0.exe](installer/GeomWhisper-Setup-1.0.0.exe).
+**Windows:** Run [GeomWhisper-Setup-1.0.1.exe](installer/GeomWhisper-Setup-1.0.1.exe).
 
 - Detects whether R 4.4 or later is installed and, when necessary, offers to
      download and install the current R release from CRAN.

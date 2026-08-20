@@ -1,5 +1,5 @@
 #define MyAppName "ggplot Voice Copilot (Multi-LLM)"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.0.1"
 #define MyAppExeName "ggplot Voice Copilot Conv.bat"
 #define MyAppPublisher "ggplot Voice Copilot"
 #define MyAppURL ""
@@ -11,7 +11,7 @@ AppId = {{D7E5F8A1-B2C3-4D56-E7F8-9A0B1C2D3E4F}
 DefaultDirName = {userpf}\{#MyAppName}
 DefaultGroupName = {#MyAppName}
 OutputDir = installer_output
-OutputBaseFilename = setup_{#MyAppName}
+OutputBaseFilename = GeomWhisper-Setup-{#MyAppVersion}
 SetupIconFile = setup.ico
 AppVersion = {#MyAppVersion}
 AppPublisher = {#MyAppPublisher}
