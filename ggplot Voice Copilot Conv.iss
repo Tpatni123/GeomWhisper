@@ -47,6 +47,7 @@ Source: "ui.R"; DestDir: "{app}"; Flags: ignoreversion
 Source: "start.bat"; DestDir: "{app}"; Flags: ignoreversion
 Source: "launch.ps1"; DestDir: "{app}"; Flags: ignoreversion
 Source: "README.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "images\*"; DestDir: "{app}\images"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "www\speech.js"; DestDir: "{app}\www"; Flags: ignoreversion
 Source: "www\styles.css"; DestDir: "{app}\www"; Flags: ignoreversion
 Source: "skills\nature.md"; DestDir: "{app}\skills"; Flags: ignoreversion
