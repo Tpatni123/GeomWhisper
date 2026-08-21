@@ -59,11 +59,12 @@ language. This can slow down exploratory work and shift figure refinement into a
 serial workflow mediated by the analyst.
 
 GeomWhisper addresses this problem in three complementary ways. First, it ships
-as a standalone Windows application with a self-contained installer and launcher
-that automatically provisions the R runtime, when needed, and required R
-packages in the background. Users do not need to install, open, or use RStudio,
-or manage R packages manually; uploading an R script and a data file is
-sufficient to produce and refine a publication-quality `ggplot2` figure.
+as a standalone desktop application with installers for Windows and macOS.
+Both desktop distributions let users start the application without opening
+RStudio or manually managing R packages; uploading an R script and a data file
+is sufficient to produce and refine a publication-quality `ggplot2` figure.
+Each platform-specific installer provisions the R runtime when needed, and its
+launcher installs required R packages in the background.
 Second, by giving subject-matter experts a direct conversational interface for
 requesting changes, it removes the dependency on a biostatistician or
 statistical programmer as an intermediary for every incremental revision.
@@ -145,12 +146,17 @@ Each request is handled through a constrained tool-calling workflow that revises
 and evaluates plot code in an isolated environment before the live figure is
 updated. The application preserves multi-turn context, supports scripts with
 multiple plots, and keeps an undoable history so collaborators can safely
-compare alternative views. It prompts the assistant to flag changes to
-aesthetics, statistical methods, or data filters for user review. A Windows installer and launcher
-bootstrap R dependencies and start the local session, while the repository
-includes an offline smoke test that verifies local helper functions and safe
-evaluation of valid and invalid `ggplot2` code without requiring live API keys.
-A direct `shiny::runApp()` launch remains available for other platforms.
+compare alternative views. When an implemented revision changes or adds a
+statistical element, the chat displays a distinct warning; other implemented
+edits are described in the ordinary chat response. Installers for Windows and
+macOS provision R when needed, install missing R dependencies into the user
+library at first launch, and start a local Shiny session. They require R 4.4
+or later and guide users through installing or updating R when necessary. The
+repository includes an offline smoke test that verifies local helper functions
+and safe evaluation of valid and invalid `ggplot2` code without requiring live
+API keys.
+A direct `shiny::runApp()` launch from an R session, such as RStudio, remains
+available for other platforms.
 
 To adapt an existing script, users refer to a single uploaded dataset as
 `user_data`; when several files are uploaded, each is also available through a
