@@ -280,7 +280,7 @@ server <- function(input, output, session) {
   }
 
   # ====== Clean shutdown (desktop packaging) ======
-  if (!interactive()) {
+  if (identical(Sys.getenv("GGPLOT_VOICE_COPILOT_DESKTOP"), "1")) {
     session$onSessionEnded(function() {
       stopApp()
       q("no")

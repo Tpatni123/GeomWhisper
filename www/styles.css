@@ -62,6 +62,12 @@
   overflow: hidden;
 }
 
+shiny-chat-messages {
+  background: #fff;
+  border: 1px solid #C8541A;
+  color: #212529;
+}
+
 /* ── Model / status badge ── */
 .agent-badge {
   display: inline-flex;

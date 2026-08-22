@@ -255,7 +255,7 @@ ui <- tagList(
 
 
     tags$head(
-      tags$link(rel = "stylesheet", href = "styles.css?v=5"),
+      tags$link(rel = "stylesheet", href = "styles.css?v=8"),
       tags$link(
         rel  = "stylesheet",
         href = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"

@@ -230,6 +230,7 @@ if ($missCount -gt 0) {
 # Launch via cmd /c — like RInno's run.js approach, no PS redirect conflicts
 # WindowStyle Hidden + RedirectStandardOutput cannot be combined in Start-Process
 $cmdInner  = "`"$Rscript`" --vanilla `"$rStartFile`" >`"$shinyLog`" 2>&1"
+$env:GGPLOT_VOICE_COPILOT_DESKTOP = "1"
 $shinyProc = Start-Process -FilePath "cmd.exe" `
     -ArgumentList "/c `"$cmdInner`"" `
     -WorkingDirectory $AppDir `
