@@ -144,10 +144,9 @@ Shiny interface, record speech, or call an LLM provider.
 
 - Contribution guidance is in [CONTRIBUTING.md](CONTRIBUTING.md).
 - The software citation metadata is in [CITATION.cff](CITATION.cff).
-- The compact JOSS manuscript source is
-     [paper/paper-compact.md](paper/paper-compact.md), with references in
-     [paper/paper.bib](paper/paper.bib) and a rendered preview in
-     [paper/paper-compact.html](paper/paper-compact.html).
+- The JOSS manuscript source is [paper/paper.md](paper/paper.md), with
+     references in [paper/paper.bib](paper/paper.bib) and a rendered preview in
+     [paper/paper.html](paper/paper.html).
 - The repository is licensed under GPL-3.0; see [LICENSE](LICENSE).
 - Report bugs, feature requests, and support questions through the public issue
      tracker.
@@ -162,10 +161,10 @@ repo/
 │       └── r-review-checks.yml  # Offline CI smoke test
 ├── paper/
 │   ├── images/
-│   │   └── geomwhisper_*.png         # Compact manuscript figures
-│   ├── paper-compact.md               # JOSS manuscript source
-│   ├── paper-compact.html             # Rendered manuscript preview
-│   ├── paper-compact_files/           # HTML preview assets
+│   │   └── geomwhisper_*.png         # Manuscript figures
+│   ├── paper.md                       # JOSS manuscript source
+│   ├── paper.html                     # Rendered manuscript preview
+│   ├── paper_files/                   # HTML preview assets
 │   └── paper.bib                      # Manuscript bibliography
 ├── installer/
 │   └── GeomWhisper-Setup-1.0.0.exe    # Windows installer
