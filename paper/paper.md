@@ -74,7 +74,7 @@ returned for review—researchers can request and see the change in the same
 conversation, reducing a multi-step relay to a single spoken or typed request.
 Third, uploaded datasets remain in the local R session. The standard LLM prompt
 does not automatically include data-frame values; it supplies the user's request
-and current plot code instead. This prompt-minimization design supports clinical
+and current plot code instead. This prompt-minimization and privacy preserving design supports clinical
 workflows where sharing patient-level records with external services is often
 prohibited or requires burdensome governance approval.
 
@@ -166,20 +166,34 @@ multi-plot scripts use distinct named `ggplot` objects. A downloadable
 script-preparation prompt guides users in replacing file reads with these
 variables and removing display or export calls before the script is loaded.
 
-The screenshots below show a complete running example. On launch, GeomWhisper
-displays its bundled `mtcars` scatter plot (Figure 1). A user then enters a
-request to recolor the points and update the title (Figure 2). The application
-evaluates the revision and refreshes the plot preview; the chat reports the
-applied changes (Figure 3).
+Figure 1 summarizes the main interaction sequence. Users load one or more data
+files, upload or paste a `ggplot2` script, and click Load to evaluate and review
+the initial plot. They can then speak or type a revision request. GeomWhisper
+evaluates each revision locally and refreshes the preview and chat response.
+This sequence can be repeated for further refinement. Undo restores the prior
+plot version, while Reset returns the plot to its initial state. Raw uploaded
+data remain in the local R session and are not included in the standard LLM
+prompt.
 
-![Figure 1. Initial GeomWhisper session with the default `mtcars` scatter plot.
+![Figure 1. GeomWhisper workflow. Users load data and plotting code, review the
+initial plot, and request revisions through voice or typed chat. Raw uploaded
+data remain in the local R session and are not included in the standard LLM
+prompt.](images/geomwhisper_workflow.png)
+
+The screenshots below show a complete running example. On launch, GeomWhisper
+displays its bundled `mtcars` scatter plot (Figure 2). A user then enters a
+request to recolor the points and update the title (Figure 3). The application
+evaluates the revision and refreshes the plot preview; the chat reports the
+applied changes (Figure 4).
+
+![Figure 2. Initial GeomWhisper session with the default `mtcars` scatter plot.
 The left panel shows the active provider, voice shortcut, chat input, and dataset
 controls.](images/geomwhisper_initial_state.png)
 
-![Figure 2. A typed request asks GeomWhisper to change the point color to dark
+![Figure 3. A typed request asks GeomWhisper to change the point color to dark
 orange and update the plot title.](images/geomwhisper_change_request.png)
 
-![Figure 3. The completed request: the preview shows dark-orange points and the
+![Figure 4. The completed request: the preview shows dark-orange points and the
 revised title, while the chat reports the changes applied.](images/geomwhisper_change_applied.png)
 
 # Research impact statement
