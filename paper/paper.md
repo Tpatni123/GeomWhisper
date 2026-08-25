@@ -9,21 +9,21 @@ tags:
   - voice interface
 authors:
   - name: Tushar Patni
-    # orcid: 0000-0000-0000-0000   # TODO: add ORCID before submission
+    # orcid: 0000-0003-1605-7207
     corresponding: true
     affiliation: 1
   - name: Jade Wang
-    # orcid: 0000-0000-0000-0000   # TODO: add ORCID before submission
+    # orcid: 0000-0001-5377-0509
     affiliation: 2
   - name: Yimei Li
-    # orcid: 0000-0000-0000-0000   # TODO: add ORCID before submission
+    # orcid: 0000-0002-7046-4316
     affiliation: 1
 affiliations:
   - index: 1
     name: St. Jude Children's Research Hospital, United States
   - index: 2
     name: Department of Statistics, Texas A&M University, United States
-date: 23 May 2026
+date: 24 August 2026
 bibliography: paper.bib
 ---
 
@@ -141,6 +141,9 @@ workflow, allowing users to choose the input method that best suits their
 setting and accessibility needs. `ellmer` provides a common interface to OpenAI,
 Anthropic, Google Gemini, and Ollama [@ellmer2025], letting teams select a cloud
 provider or a locally running model according to cost and connectivity needs.
+Users may upload a plain-text Markdown (`.md`) file containing journal-specific
+figure requirements; its contents are included as instructions in subsequent
+LLM requests.
 
 Each request is handled through a constrained tool-calling workflow that revises
 and evaluates plot code in an isolated environment before the live figure is

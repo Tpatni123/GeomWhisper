@@ -6,7 +6,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="dcterms.date" content="2026-05-23">
+<meta name="dcterms.date" content="2026-08-24">
 
 <title>GeomWhisper: conversational and voice-driven refinement of ggplot visualizations</title>
 <style>
@@ -106,7 +106,7 @@ div.csl-indent {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">May 23, 2026</p>
+      <p class="date">August 24, 2026</p>
     </div>
   </div>
   
@@ -140,7 +140,7 @@ div.csl-indent {
 </section>
 <section id="software-design" class="level1">
 <h1>Software design</h1>
-<p>GeomWhisper is a local-first Shiny application: the interface, dataset, and plot rendering stay in the user’s R session. The standard LLM context contains the user’s request and current plot code, rather than automatically including uploaded data-frame values. This prompt-minimization boundary, rather than the selected LLM provider, protects the underlying data. Browser-based speech capture and typed chat use the same conversational workflow, allowing users to choose the input method that best suits their setting and accessibility needs. <code>ellmer</code> provides a common interface to OpenAI, Anthropic, Google Gemini, and Ollama <span class="citation" data-cites="ellmer2025">(<a href="#ref-ellmer2025" role="doc-biblioref">Posit Software, PBC 2025</a>)</span>, letting teams select a cloud provider or a locally running model according to cost and connectivity needs.</p>
+<p>GeomWhisper is a local-first Shiny application: the interface, dataset, and plot rendering stay in the user’s R session. The standard LLM context contains the user’s request and current plot code, rather than automatically including uploaded data-frame values. This prompt-minimization boundary, rather than the selected LLM provider, protects the underlying data. Browser-based speech capture and typed chat use the same conversational workflow, allowing users to choose the input method that best suits their setting and accessibility needs. <code>ellmer</code> provides a common interface to OpenAI, Anthropic, Google Gemini, and Ollama <span class="citation" data-cites="ellmer2025">(<a href="#ref-ellmer2025" role="doc-biblioref">Posit Software, PBC 2025</a>)</span>, letting teams select a cloud provider or a locally running model according to cost and connectivity needs. Users may upload a plain-text Markdown (<code>.md</code>) file containing journal-specific figure requirements; its contents are included as instructions in subsequent LLM requests.</p>
 <p>Each request is handled through a constrained tool-calling workflow that revises and evaluates plot code in an isolated environment before the live figure is updated. The application preserves multi-turn context, supports scripts with multiple plots, and keeps an undoable history so collaborators can safely compare alternative views. When an implemented revision changes or adds a statistical element, the chat displays a distinct warning; other implemented edits are described in the ordinary chat response. Installers for Windows and macOS provision R when needed, install missing R dependencies into the user library at first launch, and start a local Shiny session. They require R 4.4 or later and guide users through installing or updating R when necessary. The repository includes an offline smoke test that verifies local helper functions and safe evaluation of valid and invalid <code>ggplot2</code> code without requiring live API keys. A direct <code>shiny::runApp()</code> launch from an R session, such as RStudio, remains available for other platforms.</p>
 <p>To adapt an existing script, users refer to a single uploaded dataset as <code>user_data</code>; when several files are uploaded, each is also available through a sanitized filename-derived variable shown in the Dataset panel. A single plot should be assigned to <code>p</code> (or left as the final <code>ggplot()</code> expression), whereas multi-plot scripts use distinct named <code>ggplot</code> objects. A downloadable script-preparation prompt guides users in replacing file reads with these variables and removing display or export calls before the script is loaded.</p>
 <p>Figure 1 summarizes the main interaction sequence. Users load one or more data files, upload or paste a <code>ggplot2</code> script, and click Load to evaluate and review the initial plot. They can then speak or type a revision request. GeomWhisper evaluates each revision locally and refreshes the preview and chat response. This sequence can be repeated for further refinement. Undo restores the prior plot version, while Reset returns the plot to its initial state. Raw uploaded data remain in the local R session and are not included in the standard LLM prompt.</p>
