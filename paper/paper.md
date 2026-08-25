@@ -65,13 +65,12 @@ RStudio or manually managing R packages; uploading an R script and a data file
 is sufficient to produce and refine a publication-quality `ggplot2` figure.
 Each platform-specific installer provisions the R runtime when needed, and its
 launcher installs required R packages in the background.
-Second, by giving subject-matter experts a direct conversational interface for
-requesting changes, it removes the dependency on a biostatistician or
-statistical programmer as an intermediary for every incremental revision.
-Rather than the current serial workflow—where a collaborator describes a
-desired change, an analyst implements it in code, and the updated figure is
-returned for review—researchers can request and see the change in the same
-conversation, reducing a multi-step relay to a single spoken or typed request.
+Second, a statistician or statistical programmer can provide the initial R
+script and data, after which subject-matter experts can request and review
+iterative plot changes directly through the conversational interface. This
+removes the repeated implementation burden from the current serial workflow,
+where a collaborator describes each desired change, an analyst edits the code,
+and the updated figure is returned for review.
 Third, uploaded datasets remain in the local R session. The standard LLM prompt
 does not automatically include data-frame values; it supplies the user's request
 and current plot code instead. This prompt-minimization and privacy preserving design supports clinical
