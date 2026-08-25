@@ -15,6 +15,9 @@ its filename and shown in the Dataset panel. Then upload an `.R` script in
 **Initial Plot Code** or paste ggplot2 code before asking GeomWhisper to refine
 the visualization.
 
+See [examples/lung_example.R](examples/lung_example.R) for a runnable example
+using the supplied `lung.csv` data and prompts for refining its plot.
+
 ## Architecture
 
 ```
