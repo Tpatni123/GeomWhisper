@@ -9,14 +9,14 @@ tags:
   - voice interface
 authors:
   - name: Tushar Patni
-    # orcid: 0000-0003-1605-7207
+    orcid: 0000-0003-1605-7207
     corresponding: true
     affiliation: 1
   - name: Jade Wang
-    # orcid: 0000-0001-5377-0509
+    orcid: 0000-0001-5377-0509
     affiliation: 2
   - name: Yimei Li
-    # orcid: 0000-0002-7046-4316
+    orcid: 0000-0002-7046-4316
     affiliation: 1
 affiliations:
   - index: 1
