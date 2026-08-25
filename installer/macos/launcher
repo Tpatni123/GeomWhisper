@@ -1,0 +1,262 @@
+#!/bin/bash
+# GeomWhisper macOS launcher.
+# Finds R >= 4.4, uses a writable user package library, starts Shiny locally,
+# and opens a supported browser. No API keys are embedded in this bundle.
+
+set -u
+
+SELF_DIR="$(cd "$(dirname "$0")" && pwd)"
+APP_DIR="$(cd "$SELF_DIR/../Resources/app" && pwd)"
+cd "$APP_DIR" || exit 1
+
+PORT="${GEOMWHISPER_PORT:-7475}"
+LOG_DIR="${HOME}/Library/Logs/GeomWhisper"
+LOG_FILE="$LOG_DIR/launch.log"
+SHINY_LOG="$LOG_DIR/shiny.log"
+R_START_FILE="$LOG_DIR/shiny_start.R"
+NO_BROWSER="${GEOMWHISPER_NO_BROWSER:-0}"
+NO_DIALOGS="${GEOMWHISPER_NO_DIALOGS:-0}"
+TEST_EXIT_AFTER_READY="${GEOMWHISPER_TEST_EXIT_AFTER_READY:-0}"
+SHINY_PID=""
+
+mkdir -p "$LOG_DIR"
+: > "$LOG_FILE"
+
+log() {
+    local line
+    line="[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+    echo "$line" >&2
+    echo "$line" >> "$LOG_FILE"
+}
+
+escape_for_applescript() {
+    printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
+}
+
+show_error() {
+    local msg="$1" safe
+    log "ERROR: $msg"
+    if [ "$NO_DIALOGS" = "1" ]; then
+        return
+    fi
+    safe="$(escape_for_applescript "$msg")"
+    /usr/bin/osascript \
+        -e "display dialog \"$safe\" with title \"GeomWhisper - Error\" buttons {\"OK\"} default button 1 with icon stop" \
+        >/dev/null 2>&1 || true
+}
+
+cleanup() {
+    if [ -n "$SHINY_PID" ] && kill -0 "$SHINY_PID" 2>/dev/null; then
+        log "Stopping Shiny process $SHINY_PID"
+        kill "$SHINY_PID" 2>/dev/null || true
+        wait "$SHINY_PID" 2>/dev/null || true
+    fi
+}
+trap cleanup EXIT INT TERM
+
+rscript_version() {
+    "$1" --version 2>&1 | head -n 1 | \
+        sed -n -E 's/.*version ([0-9]+\.[0-9]+\.[0-9]+).*/\1/p'
+}
+
+version_ge_4_4() {
+    local version="$1" major minor rest
+    major="${version%%.*}"
+    rest="${version#*.}"
+    minor="${rest%%.*}"
+    case "$major:$minor" in
+        *[!0-9:]*|:*) return 1 ;;
+    esac
+    [ "$major" -gt 4 ] || { [ "$major" -eq 4 ] && [ "$minor" -ge 4 ]; }
+}
+
+version_gt() {
+    awk -v a="$1" -v b="$2" 'BEGIN {
+        split(a, A, "."); split(b, B, ".");
+        for (i = 1; i <= 3; i++) { A[i] += 0; B[i] += 0 }
+        for (i = 1; i <= 3; i++) {
+            if (A[i] != B[i]) exit !(A[i] > B[i])
+        }
+        exit 1
+    }'
+}
+
+pick_rscript() {
+    local candidates path_r candidate version best best_version framework_candidate
+    candidates=""
+    best=""
+    best_version="0.0.0"
+
+    path_r="$(command -v Rscript 2>/dev/null || true)"
+    [ -n "$path_r" ] && candidates="$candidates
+$path_r"
+    for candidate in \
+        /Library/Frameworks/R.framework/Resources/bin/Rscript \
+        /opt/homebrew/bin/Rscript \
+        /usr/local/bin/Rscript; do
+        [ -x "$candidate" ] && candidates="$candidates
+$candidate"
+    done
+    for framework_candidate in /Library/Frameworks/R.framework/Versions/*/Resources/bin/Rscript; do
+        [ -x "$framework_candidate" ] && candidates="$candidates
+$framework_candidate"
+    done
+
+    while IFS= read -r candidate; do
+        [ -n "$candidate" ] || continue
+        [ -x "$candidate" ] || continue
+        version="$(rscript_version "$candidate" || true)"
+        [ -n "$version" ] || version="0.0.0"
+        log "R candidate: $candidate (version $version)"
+        if version_ge_4_4 "$version" && version_gt "$version" "$best_version"; then
+            best="$candidate"
+            best_version="$version"
+        fi
+    done <<EOF
+$candidates
+EOF
+
+    printf '%s' "$best"
+}
+
+log "Starting GeomWhisper"
+log "Application source: $APP_DIR"
+log "Architecture: $(uname -m); macOS: $(sw_vers -productVersion 2>/dev/null || echo unknown)"
+
+RSCRIPT="$(pick_rscript)"
+if [ -z "$RSCRIPT" ]; then
+    show_error "GeomWhisper requires R 4.4 or later, but a compatible R installation was not found.
+
+Install the current R release from https://cran.r-project.org/bin/macosx/ and then reopen GeomWhisper."
+    exit 1
+fi
+R_VERSION="$(rscript_version "$RSCRIPT")"
+log "Selected Rscript: $RSCRIPT (version $R_VERSION)"
+
+R_MAJOR_MINOR="$(printf '%s' "$R_VERSION" | awk -F. '{print $1 "." $2}')"
+if [ -z "${R_LIBS_USER:-}" ]; then
+    R_LIBS_USER="$HOME/Library/R/$R_MAJOR_MINOR/library"
+    export R_LIBS_USER
+fi
+mkdir -p "$R_LIBS_USER"
+log "User R library: $R_LIBS_USER"
+
+if /usr/bin/nc -z 127.0.0.1 "$PORT" >/dev/null 2>&1; then
+    show_error "Port $PORT is already in use. Close the other GeomWhisper session or set GEOMWHISPER_PORT to another local port."
+    exit 1
+fi
+
+cat > "$R_START_FILE" <<'R_EOF'
+repos <- c(
+  CRAN = "https://cloud.r-project.org",
+  RStudio = "https://cran.rstudio.com",
+  Posit = "https://posit.r-universe.dev"
+)
+options(repos = repos)
+pkgs <- c("shiny", "ggplot2", "shinyjs", "jsonlite", "bslib",
+          "ellmer", "coro", "promises", "readxl", "magick", "shinychat")
+user_lib <- Sys.getenv("R_LIBS_USER")
+if (!nzchar(user_lib)) stop("R_LIBS_USER is not configured", call. = FALSE)
+if (!dir.exists(user_lib)) dir.create(user_lib, recursive = TRUE, showWarnings = FALSE)
+.libPaths(c(user_lib, .libPaths()))
+missing <- pkgs[!vapply(pkgs, requireNamespace, logical(1), quietly = TRUE)]
+if (length(missing)) {
+  cat("Installing missing R packages:", paste(missing, collapse = ", "), "\n")
+  try(install.packages(missing, lib = user_lib, repos = repos), silent = FALSE)
+  missing <- pkgs[!vapply(pkgs, requireNamespace, logical(1), quietly = TRUE)]
+}
+if (length(missing)) {
+  cat("Trying source installation for:", paste(missing, collapse = ", "), "\n")
+  try(install.packages(missing, lib = user_lib, repos = repos, type = "source"), silent = FALSE)
+  missing <- pkgs[!vapply(pkgs, requireNamespace, logical(1), quietly = TRUE)]
+}
+if (length(missing)) {
+  stop(
+    "Could not install required R packages: ", paste(missing, collapse = ", "),
+    ". See the launch log and install Xcode Command Line Tools if source compilation is required.",
+    call. = FALSE
+  )
+}
+shiny::runApp(Sys.getenv("GEOMWHISPER_APP_DIR"),
+              host = "127.0.0.1",
+              port = as.integer(Sys.getenv("GEOMWHISPER_PORT")),
+              launch.browser = FALSE)
+R_EOF
+
+export GEOMWHISPER_APP_DIR="$APP_DIR"
+export GEOMWHISPER_PORT="$PORT"
+# server.R uses this flag to stop the local R process when the desktop browser
+# session ends. Keep this aligned with the Windows launcher.
+export GGPLOT_VOICE_COPILOT_DESKTOP=1
+: > "$SHINY_LOG"
+
+MISSING_COUNT="$($RSCRIPT --vanilla -e \
+    "pkgs<-c('shiny','ggplot2','shinyjs','jsonlite','bslib','ellmer','coro','promises','readxl','magick','shinychat');cat(sum(!vapply(pkgs,requireNamespace,logical(1),quietly=TRUE)))" \
+    2>/dev/null || echo 11)"
+case "$MISSING_COUNT" in
+    ''|*[!0-9]*) MISSING_COUNT=11 ;;
+esac
+if [ "$MISSING_COUNT" -gt 0 ]; then
+    STARTUP_TIMEOUT="${GEOMWHISPER_STARTUP_TIMEOUT:-600}"
+    log "First launch: $MISSING_COUNT R package(s) missing; allowing ${STARTUP_TIMEOUT}s for installation"
+else
+    STARTUP_TIMEOUT="${GEOMWHISPER_STARTUP_TIMEOUT:-90}"
+fi
+
+log "Starting Shiny on 127.0.0.1:$PORT"
+"$RSCRIPT" --vanilla "$R_START_FILE" >> "$SHINY_LOG" 2>&1 &
+SHINY_PID=$!
+
+READY=0
+i=0
+while [ "$i" -lt "$STARTUP_TIMEOUT" ]; do
+    i=$((i + 1))
+    sleep 1
+    if ! kill -0 "$SHINY_PID" 2>/dev/null; then
+        LAST_LINES="$(tail -n 30 "$SHINY_LOG" 2>/dev/null || true)"
+        show_error "GeomWhisper failed to start.
+
+R output:
+$LAST_LINES
+
+Full log: $SHINY_LOG"
+        exit 1
+    fi
+    if /usr/bin/nc -z 127.0.0.1 "$PORT" >/dev/null 2>&1; then
+        READY=1
+        log "Shiny ready after ${i}s"
+        break
+    fi
+done
+
+if [ "$READY" -ne 1 ]; then
+    show_error "GeomWhisper did not become ready within ${STARTUP_TIMEOUT} seconds. See $SHINY_LOG for details."
+    exit 1
+fi
+
+if [ "$TEST_EXIT_AFTER_READY" = "1" ]; then
+    log "Test mode: startup verified; exiting"
+    exit 0
+fi
+
+URL="http://127.0.0.1:$PORT"
+if [ "$NO_BROWSER" != "1" ]; then
+    if /usr/bin/open -Ra "Google Chrome" >/dev/null 2>&1; then
+        log "Opening Google Chrome application window"
+        /usr/bin/open -na "Google Chrome" --args --app="$URL" --new-window
+    elif /usr/bin/open -Ra "Microsoft Edge" >/dev/null 2>&1; then
+        log "Opening Microsoft Edge application window"
+        /usr/bin/open -na "Microsoft Edge" --args --app="$URL" --new-window
+    else
+        log "Chrome and Edge not found; opening the default browser"
+        /usr/bin/open "$URL"
+    fi
+else
+    log "Browser launch disabled; open $URL manually"
+fi
+
+log "Waiting for the Shiny session to end"
+wait "$SHINY_PID" 2>/dev/null || true
+SHINY_PID=""
+log "GeomWhisper stopped"
+exit 0
