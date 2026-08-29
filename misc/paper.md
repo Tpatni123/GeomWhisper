@@ -9,22 +9,22 @@ tags:
   - voice interface
 authors:
   - name: Tushar Patni
-    orcid: 0000-0003-1605-7207
+    # orcid: 0000-0000-0000-0000   # TODO: add ORCID before submission
     corresponding: true
     affiliation: 1
   - name: Jade Wang
-    orcid: 0000-0001-5377-0509
+    # orcid: 0000-0000-0000-0000   # TODO: add ORCID before submission
     affiliation: 2
   - name: Yimei Li
-    orcid: 0000-0002-7046-4316
+    # orcid: 0000-0000-0000-0000   # TODO: add ORCID before submission
     affiliation: 1
 affiliations:
   - index: 1
     name: St. Jude Children's Research Hospital, United States
   - index: 2
     name: Department of Statistics, Texas A&M University, United States
-date: 24 August 2026
-bibliography: paper.bib
+date: 23 May 2026
+bibliography: paper/paper.bib
 ---
 
 # Summary
@@ -59,21 +59,21 @@ language. This can slow down exploratory work and shift figure refinement into a
 serial workflow mediated by the analyst.
 
 GeomWhisper addresses this problem in three complementary ways. First, it ships
-as a standalone desktop application with installers for Windows and macOS.
-Both desktop distributions let users start the application without opening
-RStudio or manually managing R packages; uploading an R script and a data file
-is sufficient to produce and refine a publication-quality `ggplot2` figure.
-Each platform-specific installer provisions the R runtime when needed, and its
-launcher installs required R packages in the background.
-Second, a statistician or statistical programmer can provide the initial R
-script and data, after which subject-matter experts can request and review
-iterative plot changes directly through the conversational interface. This
-removes the repeated implementation burden from the current serial workflow,
-where a collaborator describes each desired change, an analyst edits the code,
-and the updated figure is returned for review.
+as a standalone Windows application with a self-contained installer and launcher
+that automatically provisions the R runtime, when needed, and required R
+packages in the background. Users do not need to install, open, or use RStudio,
+or manage R packages manually; uploading an R script and a data file is
+sufficient to produce and refine a publication-quality `ggplot2` figure.
+Second, by giving subject-matter experts a direct conversational interface for
+requesting changes, it removes the dependency on a biostatistician or
+statistical programmer as an intermediary for every incremental revision.
+Rather than the current serial workflow—where a collaborator describes a
+desired change, an analyst implements it in code, and the updated figure is
+returned for review—researchers can request and see the change in the same
+conversation, reducing a multi-step relay to a single spoken or typed request.
 Third, uploaded datasets remain in the local R session. The standard LLM prompt
 does not automatically include data-frame values; it supplies the user's request
-and current plot code instead. This prompt-minimization and privacy preserving design supports clinical
+and current plot code instead. This prompt-minimization design supports clinical
 workflows where sharing patient-level records with external services is often
 prohibited or requires burdensome governance approval.
 
@@ -87,9 +87,10 @@ collaborators who may never open an IDE at all.
 The software is designed for researchers, scientists, and doctors working with
 teams whose analyses use R graphics, but who want a faster conversational layer
 for changing plots during analysis review, figure design, or collaborative
-interpretation. The software has been discussed with researchers, and
-we have begun working with additional clinical and scientific collaborators to
-introduce GeomWhisper into their figure-review workflows.
+interpretation. In ongoing use, the software has been applied in collaborative
+work involving oncologists, radiation therapists, and other scientific
+researchers, where rapid plot revision is valuable for both analysis discussion
+and figure preparation.
 
 # State of the field
 
@@ -126,85 +127,108 @@ tool that combines local-first execution where raw data stay on the user's
 machine, multi-provider routing including local models, live editing of
 user-supplied `ggplot2` code inside a running Shiny session, both voice and
 typed chat interaction, and installer-based desktop distribution for
-collaborators who may not use R or RStudio. GeomWhisper’s architecture directly embodies recent perspectives arguing that scientific figures should be treated as reusable, executable code rather than static graphics, with conversational AI assisting in iterative figure refinement while preserving full programmatic transparency [@lex2026code].
+collaborators who may not use R or RStudio.
 
 # Software design
 
-GeomWhisper is a local-first Shiny application: the interface, dataset, and plot
-rendering stay in the user’s R session. The standard LLM context contains the
-user's request and current plot code, rather than automatically including
-uploaded data-frame values. This prompt-minimization boundary, rather than the
-selected LLM provider, protects the underlying data.
-Browser-based speech capture and typed chat use the same conversational
-workflow, allowing users to choose the input method that best suits their
-setting and accessibility needs. `ellmer` provides a common interface to OpenAI,
-Anthropic, Google Gemini, and Ollama [@ellmer2025], letting teams select a cloud
-provider or a locally running model according to cost and connectivity needs.
-Users may upload a plain-text Markdown (`.md`) file containing journal-specific
-figure requirements; its contents are included as instructions in subsequent
-LLM requests.
+GeomWhisper follows a local-first architecture in which the user interface,
+dataset context, and plot rendering remain inside a Shiny session while the LLM
+is used only to propose plot modifications. The standard LLM context contains
+the user's request and current plot code, rather than automatically including
+uploaded data-frame values. This prompt-minimization boundary protects the
+underlying dataset, eliminates round-trips to external rendering services, and
+makes the running session directly testable by a reviewer.
 
-Each request is handled through a constrained tool-calling workflow that revises
-and evaluates plot code in an isolated environment before the live figure is
-updated. The application preserves multi-turn context, supports scripts with
-multiple plots, and keeps an undoable history so collaborators can safely
-compare alternative views. When an implemented revision changes or adds a
-statistical element, the chat displays a distinct warning; other implemented
-edits are described in the ordinary chat response. Installers for Windows and
-macOS provision R when needed, install missing R dependencies into the user
-library at first launch, and start a local Shiny session. They require R 4.4
-or later and guide users through installing or updating R when necessary. The
-repository includes an offline smoke test that verifies local helper functions
-and safe evaluation of valid and invalid `ggplot2` code without requiring live
-API keys.
-A direct `shiny::runApp()` launch from an R session, such as RStudio, remains
-available for other platforms.
+**Conversation and voice interface.** Browser speech input is handled through
+the Web Speech API via a JavaScript layer that sends voice transcripts to the
+Shiny server as custom messages. Typed chat is rendered as streaming chat bubbles
+through the `shinychat` package [@shinychat2026] without blocking the Shiny
+event loop. This separation between input modality and rendering was an explicit
+design choice: voice improves collaborator-facing interaction while typed input
+preserves accessibility in non-voice environments such as review settings.
 
-To adapt an existing script, users refer to a single uploaded dataset as
-`user_data`; when several files are uploaded, each is also available through a
-sanitized filename-derived variable shown in the Dataset panel. A single plot
-should be assigned to `p` (or left as the final `ggplot()` expression), whereas
-multi-plot scripts use distinct named `ggplot` objects. A downloadable
-script-preparation prompt guides users in replacing file reads with these
-variables and removing display or export calls before the script is loaded.
+**Multi-provider LLM routing.** The application uses `ellmer` as the LLM
+abstraction layer, supporting OpenAI, Anthropic, Google Gemini, and local Ollama
+models [@ellmer2025]. This choice lets teams select a provider appropriate to
+their cost and connectivity constraints; locally running Ollama models offer a
+cost-efficient option when cloud access is unavailable or undesirable. The same
+prompt-minimization boundary protects raw data regardless of the selected
+provider. A persistent conversation object is created per session and retains
+the full multi-turn message history so the LLM can interpret follow-on requests
+in context. Provider and model selections are persisted across sessions.
 
-Figure 1 summarizes the main interaction sequence. Users load one or more data
-files, upload or paste a `ggplot2` script, and click Load to evaluate and review
-the initial plot. They can then speak or type a revision request. GeomWhisper
-evaluates each revision locally and refreshes the preview and chat response.
-This sequence can be repeated for further refinement. Undo restores the prior
-plot version, while Reset returns the plot to its initial state. Raw uploaded
-data remain in the local R session and are not included in the standard LLM
-prompt.
+**Plot evaluation pipeline.** When the LLM generates revised R code via a
+tool-calling response, it is evaluated in an isolated environment that
+automatically collects all `ggplot`, `patchwork`, and `ggbreak` objects produced
+during execution. Warning management uses a resumable-handler strategy so that
+packages which issue warnings mid-execution and expect to continue are not
+prematurely aborted—an important consideration when working with complex
+visualization packages. A runtime compatibility shim handles a known interaction
+between `ggbreak`'s internal call-stack inspection and the tool dispatcher's
+closure context, and a garbage-collection retry path recovers from state-
+corruption errors without requiring user intervention.
 
-![Figure 1. GeomWhisper workflow. Users load data and plotting code, review the
-initial plot, and request revisions through voice or typed chat. Raw uploaded
-data remain in the local R session and are not included in the standard LLM
-prompt.](images/geomwhisper_workflow.png)
+**Multi-plot support and per-plot isolation.** When a script defines multiple
+named plot objects, the application splits it into a shared preamble (library
+calls, data loading, transformations) and individual per-plot code blocks. The
+LLM is given only the active plot's block to revise; the modified block is then
+spliced back into the full script before re-evaluation. This isolation prevents
+a change to one figure from inadvertently corrupting others.
+
+**Diff-feedback loop and statistical-change annotation.** After a successful
+update, the application computes a line-level diff between the previous and
+newly generated plot code and includes it in the tool-call response returned to
+the LLM. A rule embedded in this response prompts the LLM to surface a visible
+warning if the diff touches geom type, aesthetic mappings, statistical methods,
+or data filters—changes that can affect the scientific interpretation of the
+figure.
+
+**Journal style skills.** Users can upload a plain-text figure-style guide that
+is injected into the LLM system prompt, ensuring generated code conforms to
+publication-specific requirements. Bundled templates for APA 7th edition and
+Nature figure requirements are included in the repository.
+
+**Reproducibility controls.** The application maintains a 20-item code history
+for undo behavior and supports reset to a known default plot. The repository
+includes an offline smoke test (`tests/offline_smoke.R`) that validates core
+helper functions without requiring live API keys. End-to-end LLM-dependent
+behavior requires a live provider key; the offline test documents which helpers
+are independently verifiable.
+
+**Installation and resilience.** A Windows installer and PowerShell launcher
+manage the full bootstrapping sequence for users who may not administer R
+directly: they detect the installed R version, terminate any stale server
+process occupying the application port, install missing packages by cycling
+through multiple CRAN mirrors with an automatic fallback from pre-compiled
+binary packages to source builds, and migrate stored provider configurations
+from earlier versions without user intervention. A direct `shiny::runApp()` call
+remains available for all platforms.
 
 The screenshots below show a complete running example. On launch, GeomWhisper
-displays its bundled `mtcars` scatter plot (Figure 2). A user then enters a
-request to recolor the points and update the title (Figure 3). The application
+displays its bundled `mtcars` scatter plot (Figure 1). A user then enters a
+request to recolor the points and update the title (Figure 2). The application
 evaluates the revision and refreshes the plot preview; the chat reports the
-applied changes (Figure 4).
+applied changes (Figure 3).
 
-![Figure 2. Initial GeomWhisper session with the default `mtcars` scatter plot.
+![Figure 1. Initial GeomWhisper session with the default `mtcars` scatter plot.
 The left panel shows the active provider, voice shortcut, chat input, and dataset
-controls.](images/geomwhisper_initial_state.png)
+controls.](paper/images/geomwhisper_initial_state.png)
 
-![Figure 3. A typed request asks GeomWhisper to change the point color to dark
-orange and update the plot title.](images/geomwhisper_change_request.png)
+![Figure 2. A typed request asks GeomWhisper to change the point color to dark
+orange and update the plot title.](paper/images/geomwhisper_change_request.png)
 
-![Figure 4. The completed request: the preview shows dark-orange points and the
-revised title, while the chat reports the changes applied.](images/geomwhisper_change_applied.png)
+![Figure 3. The completed request: the preview shows dark-orange points and the
+revised title, while the chat reports the changes applied.](paper/images/geomwhisper_change_applied.png)
 
 # Research impact statement
 
 GeomWhisper's research impact is to keep figure refinement inside an R-based
 workflow while making routine plot changes accessible through natural-language
-interaction. Requested revisions are evaluated in the active Shiny session and
-update the displayed `ggplot2` figure directly. An undoable session history lets
-collaborators compare alternative figure revisions without having to write or
+interaction. Rather than moving figure work to a separate chat interface and
+manually copying generated code back into an analysis, the application evaluates
+requested revisions in the active Shiny session and updates the displayed
+`ggplot2` figure directly. The session maintains an undoable history, allowing
+collaborators to compare alternative figure revisions without having to write or
 edit R code themselves.
 
 The data-governance benefit comes from the application's prompt boundary, not
