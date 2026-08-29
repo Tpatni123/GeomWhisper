@@ -2,6 +2,7 @@
 paper/
 plan.md
 PREAMBLE_DEPS_DESIGN.md
+AGENT_MEMORY.md
 
 # Generated installers and local development state.
 installer_output/
