@@ -37,8 +37,6 @@ server <- function(input, output, session) {
     # Excel multi-sheet support
     user_data_path       = NULL,
     sheet_names          = NULL,
-    # Cached PNG of current plot (used by LLM image capture to avoid double-render)
-    current_plot_png     = NULL,
     # Per-plot isolation: preamble + individual plot code blocks
     preamble_code        = NULL,       # shared setup code (libraries, data, themes)
     plot_codes           = NULL,        # named list of per-plot code strings
@@ -929,20 +927,6 @@ server <- function(input, output, session) {
         message("[renderPlot] ERROR during print(p): ", conditionMessage(e))
         message("[renderPlot] Call: ", deparse(conditionCall(e)))
         stop(e)
-      })
-      # Cache the rendered PNG for LLM image capture — avoids re-rendering
-      # ggbreak objects (a second print() corrupts ggbreak's S7 internal state)
-      tryCatch({
-        tmp_png <- tempfile(fileext = ".png")
-        grDevices::dev.copy(grDevices::png, filename = tmp_png,
-                            width = 700L, height = 500L, res = 100L)
-        grDevices::dev.off()  # closes the png copy, not the Shiny device
-        old <- isolate(rv$current_plot_png)
-        if (!is.null(old) && file.exists(old)) unlink(old)
-        rv$current_plot_png <- tmp_png
-        message("[renderPlot] PNG cached at ", tmp_png)
-      }, error = function(e) {
-        message("[renderPlot] Could not cache PNG: ", conditionMessage(e))
       })
     } else {
       extra  <- c(list(user_data = active_df, user_data_path = user_data_path),

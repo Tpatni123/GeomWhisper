@@ -1005,47 +1005,6 @@ lcs_diff <- function(old_lines, new_lines) {
   if (k == 0L) "(no differences)" else paste(rev(buf[seq_len(k)]), collapse = "\n")
 }
 
-# ---------- Capture a gg object as an ellmer image content object ----------
-# Used to pass the current plot image to the LLM alongside the user's message.
-# Uses png()+print()+dev.off() instead of ggsave() to avoid corrupting ggbreak's
-# internal withRestarts state (ggsave calls ggplot_build which triggers ggbreak's
-# restart mechanism; after it returns the cached restart token becomes invalid,
-# causing "invalid called." on the next eval of ggbreak code).
-ggplot_image_content <- function(plot_obj, width = 7, height = 5, dpi = 100, cache_path = NULL) {
-  if (is.null(plot_obj) || !inherits(plot_obj, "gg") || inherits(plot_obj, "theme") || inherits(plot_obj, "ggproto")) return(NULL)
-  # Use pre-rendered PNG if available — avoids re-rendering ggbreak objects
-  # (a second ggplot_build() call corrupts ggbreak's S7 internal state)
-  if (!is.null(cache_path) && file.exists(cache_path)) {
-    message("[plot_image] Using cached PNG for LLM (skipping re-render). class: ",
-            paste(class(plot_obj), collapse = ", "))
-    return(ellmer::content_image_file(cache_path, resize = "low"))
-  }
-  message("[plot_image] Capturing plot for LLM. class: ", paste(class(plot_obj), collapse = ", "))
-  tryCatch({
-    tmp <- tempfile(fileext = ".png")
-    on.exit({
-      if (grDevices::dev.cur() != 1L) grDevices::dev.off()
-      unlink(tmp)
-    }, add = TRUE)
-    grDevices::png(tmp,
-                  width  = as.integer(width  * dpi),
-                  height = as.integer(height * dpi),
-                  res    = as.integer(dpi),
-                  bg     = "white")
-    withCallingHandlers(
-      print(plot_obj),
-      warning = function(w) invokeRestart("muffleWarning")
-    )
-    grDevices::dev.off()
-    message("[plot_image] png OK — ", tmp)
-    ellmer::content_image_file(tmp, resize = "low")
-  }, error = function(e) {
-    message("[plot_image] ERROR during capture: ", conditionMessage(e))
-    message("[plot_image] Call: ", deparse(conditionCall(e)))
-    NULL
-  })
-}
-
 # ---------- Export a ggplot to a temp file ----------
 export_plot <- function(plot_obj, format = "png", width_in = 8, height_in = 6, dpi = 300) {
   tryCatch({
