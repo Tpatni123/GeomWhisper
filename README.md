@@ -147,7 +147,7 @@ Shiny interface, record speech, or call an LLM provider.
 
 - Contribution guidance is in [CONTRIBUTING.md](CONTRIBUTING.md).
 - The software citation metadata is in [CITATION.cff](CITATION.cff).
-- The JOSS manuscript source is [paper/paper.md](paper/paper.md), with
+- The manuscript source is [paper/paper.md](paper/paper.md), with
      references in [paper/paper.bib](paper/paper.bib) and a rendered preview in
      [paper/paper.html](paper/paper.html).
 - The repository is licensed under GPL-3.0; see [LICENSE](LICENSE).
@@ -160,12 +160,12 @@ Shiny interface, record speech, or call an LLM provider.
 repo/
 ├── .github/
 │   └── workflows/
-│       ├── draft-pdf.yml        # JOSS draft PDF build
+│       ├── draft-pdf.yml        # Manuscript PDF build
 │       └── r-review-checks.yml  # Offline CI smoke test
 ├── paper/
 │   ├── images/
 │   │   └── geomwhisper_*.png         # Manuscript figures
-│   ├── paper.md                       # JOSS manuscript source
+│   ├── paper.md                       # Manuscript source
 │   ├── paper.html                     # Rendered manuscript preview
 │   ├── paper_files/                   # HTML preview assets
 │   └── paper.bib                      # Manuscript bibliography

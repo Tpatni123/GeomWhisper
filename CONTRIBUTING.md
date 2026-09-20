@@ -57,7 +57,7 @@ the command you used to verify the behavior in your change notes.
 
 - Keep user-facing names consistent with `GeomWhisper`.
 - Document any new environment variables, models, or provider-specific behavior.
-- If a change affects manuscript-readiness for JOSS, update the relevant
+- If a change affects manuscript readiness, update the relevant
   documentation in `README.md` as part of the same change.
 
 ## Reporting Issues
