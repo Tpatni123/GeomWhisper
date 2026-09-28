@@ -155,24 +155,33 @@ repos <- c(
 options(repos = repos)
 pkgs <- c("shiny", "ggplot2", "shinyjs", "jsonlite", "bslib",
           "ellmer", "coro", "promises", "readxl", "magick", "shinychat")
+minimum_versions <- c(ellmer = "0.5.0", shinychat = "0.5.0")
 user_lib <- Sys.getenv("R_LIBS_USER")
 if (!nzchar(user_lib)) stop("R_LIBS_USER is not configured", call. = FALSE)
 if (!dir.exists(user_lib)) dir.create(user_lib, recursive = TRUE, showWarnings = FALSE)
 .libPaths(c(user_lib, .libPaths()))
-missing <- pkgs[!vapply(pkgs, requireNamespace, logical(1), quietly = TRUE)]
-if (length(missing)) {
-  cat("Installing missing R packages:", paste(missing, collapse = ", "), "\n")
-  try(install.packages(missing, lib = user_lib, repos = repos), silent = FALSE)
-  missing <- pkgs[!vapply(pkgs, requireNamespace, logical(1), quietly = TRUE)]
+packages_needing_install <- function() {
+    missing <- pkgs[!vapply(pkgs, requireNamespace, logical(1), quietly = TRUE)]
+    outdated <- names(minimum_versions)[vapply(names(minimum_versions), function(pkg) {
+        requireNamespace(pkg, quietly = TRUE) &&
+            packageVersion(pkg) < package_version(minimum_versions[[pkg]])
+    }, logical(1))]
+    unique(c(missing, outdated))
 }
-if (length(missing)) {
-  cat("Trying source installation for:", paste(missing, collapse = ", "), "\n")
-  try(install.packages(missing, lib = user_lib, repos = repos, type = "source"), silent = FALSE)
-  missing <- pkgs[!vapply(pkgs, requireNamespace, logical(1), quietly = TRUE)]
+install_needed <- packages_needing_install()
+if (length(install_needed)) {
+    cat("Installing or upgrading R packages:", paste(install_needed, collapse = ", "), "\n")
+    try(install.packages(install_needed, lib = user_lib, repos = repos), silent = FALSE)
+    install_needed <- packages_needing_install()
 }
-if (length(missing)) {
+if (length(install_needed)) {
+    cat("Trying source installation for:", paste(install_needed, collapse = ", "), "\n")
+    try(install.packages(install_needed, lib = user_lib, repos = repos, type = "source"), silent = FALSE)
+    install_needed <- packages_needing_install()
+}
+if (length(install_needed)) {
   stop(
-    "Could not install required R packages: ", paste(missing, collapse = ", "),
+        "Could not install required R packages: ", paste(install_needed, collapse = ", "),
     ". See the launch log and install Xcode Command Line Tools if source compilation is required.",
     call. = FALSE
   )
@@ -191,7 +200,7 @@ export GGPLOT_VOICE_COPILOT_DESKTOP=1
 : > "$SHINY_LOG"
 
 MISSING_COUNT="$($RSCRIPT --vanilla -e \
-    "pkgs<-c('shiny','ggplot2','shinyjs','jsonlite','bslib','ellmer','coro','promises','readxl','magick','shinychat');cat(sum(!vapply(pkgs,requireNamespace,logical(1),quietly=TRUE)))" \
+    "pkgs<-c('shiny','ggplot2','shinyjs','jsonlite','bslib','ellmer','coro','promises','readxl','magick','shinychat');mins<-c(ellmer='0.5.0',shinychat='0.5.0');missing<-!vapply(pkgs,requireNamespace,logical(1),quietly=TRUE);old<-vapply(names(mins),function(p)requireNamespace(p,quietly=TRUE)&&packageVersion(p)<package_version(mins[[p]]),logical(1));cat(sum(missing)+sum(old))" \
     2>/dev/null || echo 11)"
 case "$MISSING_COUNT" in
     ''|*[!0-9]*) MISSING_COUNT=11 ;;

@@ -56,16 +56,68 @@
   word-wrap: break-word;
 }
 
+/* ── Persistent web-search consent ── */
+.web-search-control {
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  border: 1px solid rgba(200,84,26,0.32);
+  border-radius: 4px;
+  background: rgba(200,84,26,0.06);
+}
+
+.web-search-control .form-check {
+  margin: 0;
+  min-height: 22px;
+}
+
+.web-search-control .form-check-label {
+  color: #E8B068 !important;
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.web-search-control .form-check-input:checked {
+  background-color: #C8541A;
+  border-color: #C8541A;
+}
+
+.web-search-control .form-check-input:focus {
+  border-color: #E8B068;
+  box-shadow: 0 0 0 2px rgba(232,176,104,0.24);
+}
+
+.web-search-help {
+  margin-top: 3px;
+  color: #A8A39A;
+  font-size: 0.74em;
+  line-height: 1.35;
+}
+
+.web-search-help.unavailable {
+  color: #D8A060;
+}
+
 /* ── shinychat container sizing ── */
 .shinychat-container {
   border-radius: 8px;
   overflow: hidden;
 }
 
-shiny-chat-messages {
+.shiny-chat-messages,
+.shiny-chat-messages-content {
   background: #fff;
-  border: 1px solid #C8541A;
   color: #212529;
+}
+
+.shiny-chat-messages {
+  border: 1px solid #C8541A;
+}
+
+/* Keep internal plot-tool activity out of the user-facing conversation. */
+.shiny-chat-tool-group,
+.shiny-chat-tool-call-row {
+  display: none !important;
 }
 
 /* ── Model / status badge ── */

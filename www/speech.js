@@ -186,11 +186,14 @@ $(document).on("shiny:connected", function () {
 
   // ====== Spacebar to toggle voice (only when not typing in a text field) ======
   $(document).on("keydown", function (e) {
-    // Ignore space if user is focused on <input>, <textarea>, or contenteditable
+    // Ignore space when focus is on an interactive control or editable element.
     var tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : "";
-    var isEditable = (tag === "input" || tag === "textarea" || tag === "select" ||
-                      (document.activeElement && document.activeElement.isContentEditable));
-    if (isEditable) return;
+    var active = document.activeElement;
+    var isInteractive = (tag === "input" || tag === "textarea" || tag === "select" ||
+               tag === "button" ||
+               (active && active.isContentEditable) ||
+               (active && active.closest("[role='button'], .web-search-control")));
+    if (isInteractive) return;
 
     if (e.key === " " || e.keyCode === 32) {
       e.preventDefault();

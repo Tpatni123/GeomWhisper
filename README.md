@@ -103,14 +103,28 @@ external AI service unless that use is approved for your environment.
 
 ## Usage
 
-1. Press the **Space bar** to start or stop voice input. When recognition
+1. To allow internet lookup, check **Web search** above the chat. It remains
+   enabled until you manually uncheck it. OpenAI, Anthropic, and Google Gemini
+   use their native search tools; Ollama remains local-only.
+
+   Web search uses the full context already available to the selected model.
+   Provider-generated queries may therefore include conversation text, plot
+   code, column names, sample category values, numeric ranges, dependency
+   values, and error messages. It does not add raw-row extraction beyond the
+   app's existing model context. Search may incur provider-specific charges.
+
+2. Press the **Space bar** to start or stop voice input. When recognition
      finishes, the transcript is sent to chat automatically. Voice controls work
      in Chrome or Edge when the cursor is not in a text field.
 
-2. Or **type a command** in the chat box and click Send.
+3. Or **type a command** in the chat box and click Send.
 
-3. The plot updates in real time. Use **Undo** to revert and **Reset** to return
+4. The plot updates in real time. Use **Undo** to revert and **Reset** to return
      to the default plot.
+
+Web search is never enabled silently and the app does not silently retry a
+failed searched request without search. The app does not add a separate
+citations panel; provider-required attribution may still appear in responses.
 
 ## Local Settings and Code Execution
 

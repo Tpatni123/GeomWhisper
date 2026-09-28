@@ -152,8 +152,13 @@ $shinyLog   = "$LogDir\shiny.log"
 Set-Content -Path $rStartFile -Encoding ascii -Value @"
 pkgs <- c('shiny','ggplot2','shinyjs','jsonlite','bslib','ellmer','coro','promises','readxl','magick','shinychat')
 miss <- pkgs[!sapply(pkgs, requireNamespace, quietly = TRUE)]
-if (length(miss)) {
-  cat('Installing missing packages:', paste(miss, collapse=', '), '\\n')
+minimum_versions <- c(ellmer='0.5.0', shinychat='0.5.0')
+outdated <- names(minimum_versions)[vapply(names(minimum_versions), function(pkg) {
+    requireNamespace(pkg, quietly=TRUE) && packageVersion(pkg) < package_version(minimum_versions[[pkg]])
+}, logical(1))]
+install_needed <- unique(c(miss, outdated))
+if (length(install_needed)) {
+    cat('Installing or upgrading packages:', paste(install_needed, collapse=', '), '\n')
   usr_lib <- Sys.getenv('R_LIBS_USER')
   if (nchar(usr_lib) == 0) usr_lib <- file.path(Sys.getenv('APPDATA'), 'R', 'library')
   if (!dir.exists(usr_lib)) dir.create(usr_lib, recursive = TRUE, showWarnings = FALSE)
@@ -168,10 +173,10 @@ if (length(miss)) {
   
   # Try binary first, then source if binaries unavailable
   cat('Attempting to install packages...\\n')
-  install.packages(miss, repos = repos, lib = usr_lib, type = 'both', quiet = FALSE)
+    install.packages(install_needed, repos = repos, lib = usr_lib, type = 'both', quiet = FALSE)
   
   # Verify installation succeeded
-  still_miss <- miss[!sapply(miss, requireNamespace, quietly = TRUE)]
+    still_miss <- install_needed[!sapply(install_needed, requireNamespace, quietly = TRUE)]
   if (length(still_miss) > 0) {
     cat('\\nWARNING: Some packages could not be installed from binaries.\\n')
     cat('Attempting source installation...\\n')
@@ -192,7 +197,14 @@ if (length(miss)) {
       quit(status = 1)
     }
   }
-  cat('All packages installed successfully\\n')
+    version_failures <- names(minimum_versions)[vapply(names(minimum_versions), function(pkg) {
+        packageVersion(pkg) < package_version(minimum_versions[[pkg]])
+    }, logical(1))]
+    if (length(version_failures)) {
+        cat('ERROR: Required package versions were not installed:', paste(version_failures, collapse=', '), '\n')
+        quit(status = 1)
+    }
+    cat('All packages installed or upgraded successfully\n')
 }
 shiny::runApp('.', host = '127.0.0.1', port = $Port, launch.browser = FALSE)
 "@
@@ -209,7 +221,7 @@ Set-Content -Path $shinyLog -Value ""
 # -----------------------------------------------
 $missCount = 0
 try {
-    $checkExpr = 'pkgs<-c(''shiny'',''ggplot2'',''shinyjs'',''jsonlite'',''bslib'',''ellmer'',''coro'',''promises'',''readxl'',''magick'',''shinychat'');cat(sum(!sapply(pkgs,requireNamespace,quietly=TRUE)))'
+    $checkExpr = 'pkgs<-c(''shiny'',''ggplot2'',''shinyjs'',''jsonlite'',''bslib'',''ellmer'',''coro'',''promises'',''readxl'',''magick'',''shinychat'');mins<-c(ellmer=''0.5.0'',shinychat=''0.5.0'');miss<-!sapply(pkgs,requireNamespace,quietly=TRUE);old<-vapply(names(mins),function(p)requireNamespace(p,quietly=TRUE)&&packageVersion(p)<package_version(mins[[p]]),logical(1));cat(sum(miss)+sum(old))'
     $result    = & $Rscript --vanilla -e $checkExpr 2>$null
     $missCount = [int]($result -replace '[^0-9]', '')
 } catch { $missCount = 0 }

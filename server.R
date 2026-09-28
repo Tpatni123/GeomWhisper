@@ -70,6 +70,9 @@ server <- function(input, output, session) {
 
   # Persistent chat object: one per session, reset on dataset/code/journal change
   chat_obj <- reactiveVal(NULL)
+  chat_generation <- reactiveVal(0L)
+  search_intent <- reactiveVal(FALSE)
+  request_in_flight <- reactiveVal(FALSE)
   # Guard: prevents double init_chat() when reset_plot programmatically fires updateSelectInput
   skip_dataset_init_chat <- reactiveVal(FALSE)
 
@@ -259,10 +262,10 @@ server <- function(input, output, session) {
         active_plot_name     = active_plot_name,
         all_plot_names       = all_plot_names,
         sheet_names          = sheet_names,
-        preamble_deps        = isolate(rv$preamble_deps_text),
-        update_plot_fn       = update_plot_fn
+        preamble_deps        = isolate(rv$preamble_deps_text)
       )
       chat_obj(chat)
+      chat_generation(isolate(chat_generation()) + 1L)
       rv$init_failed <- FALSE
       message("[init_chat] Chat session created — provider: ", provider, " model: ", model)
     }, error = function(e) {
@@ -295,6 +298,44 @@ server <- function(input, output, session) {
     provider <- rv$provider
     model    <- rv$models[[provider]] %||% "unknown"
     span(paste0(model, " \u00b7 ", provider_label(provider)))
+  })
+
+  search_available <- reactive({
+    isTRUE(rv$configured) && web_search_supported(rv$provider)
+  })
+
+  observeEvent(input$web_search_enabled, {
+    requested <- isTRUE(input$web_search_enabled)
+    if (isTRUE(request_in_flight())) {
+      updateCheckboxInput(session, "web_search_enabled", value = search_intent())
+      return()
+    }
+    search_intent(requested)
+  }, ignoreInit = FALSE)
+
+  observe({
+    available <- search_available()
+    if (isTRUE(request_in_flight()) || !available) {
+      shinyjs::disable("web_search_enabled")
+    } else {
+      shinyjs::enable("web_search_enabled")
+    }
+  })
+
+  output$web_search_status <- renderUI({
+    provider <- rv$provider
+    if (!web_search_supported(provider)) {
+      return(div(
+        class = "web-search-help unavailable",
+        tags$i(class = "fa-solid fa-circle-info"),
+        " Web search is unavailable for Ollama. Your checked preference is retained."
+      ))
+    }
+    div(
+      class = "web-search-help",
+      tags$i(class = "fa-solid fa-shield-halved"),
+      " When checked, provider search queries may use the current chat, plot code, column names, sample values, numeric ranges, and errors."
+    )
   })
 
   # ====== AI Settings ======
@@ -614,19 +655,87 @@ server <- function(input, output, session) {
   })
 
   # ====== shinychat: main conversation handler ======
+  set_request_controls_busy <- function(busy) {
+    request_in_flight(isTRUE(busy))
+    control_ids <- c(
+      "web_search_enabled", "dataset", "load_code_btn", "reset_plot",
+      "undo_plot", "change_settings", "llm_provider", "save_config_btn",
+      "csv_upload", "code_upload", "code_paste", "journal_upload"
+    )
+    for (id in control_ids) {
+      if (isTRUE(busy)) shinyjs::disable(id) else shinyjs::enable(id)
+    }
+    if (!isTRUE(busy) && !web_search_supported(isolate(rv$provider))) {
+      shinyjs::disable("web_search_enabled")
+    }
+  }
+
+  display_chat_error <- function(error) {
+    detail <- if (inherits(error, "condition")) conditionMessage(error) else as.character(error)
+    showNotification(
+      paste0("Chat error \u2014 ", detail,
+             ". Check your provider settings and internet connection."),
+      type = "error", duration = 10
+    )
+  }
+
+  dispatch_chat_request <- function(text, append_user_message = FALSE) {
+    text <- trimws(text %||% "")
+    if (nchar(text) == 0L) return(invisible(FALSE))
+    chat <- chat_obj()
+    if (is.null(chat)) return(invisible(FALSE))
+    if (isTRUE(request_in_flight())) {
+      showNotification("Please wait for the current response to finish.", type = "warning")
+      return(invisible(FALSE))
+    }
+
+    provider <- isolate(rv$provider)
+    effective_search <- isTRUE(search_intent()) && web_search_supported(provider)
+    expected_generation <- chat_generation()
+    expected_plot <- isolate(rv$active_plot_name)
+
+    guarded_update_plot <- function(code) {
+      if (!identical(isolate(chat_obj()), chat) ||
+          !identical(isolate(chat_generation()), expected_generation) ||
+          !identical(isolate(rv$active_plot_name), expected_plot)) {
+        return("Plot update rejected because the active plot or conversation changed. Please try again.")
+      }
+      update_plot_fn(code)
+    }
+
+    set_request_controls_busy(TRUE)
+    request_promise <- tryCatch({
+      update_plot_tool <- create_update_plot_tool(guarded_update_plot)
+      chat$set_tools(build_request_tools(provider, update_plot_tool, effective_search))
+      if (isTRUE(append_user_message)) {
+        chat_append_message("chat", list(role = "user", content = text), chunk = FALSE)
+      }
+      chat_append(
+        "chat",
+        chat$stream_async(text, tool_mode = "sequential", stream = "content")
+      )
+    }, error = function(error) {
+      display_chat_error(error)
+      set_request_controls_busy(FALSE)
+      NULL
+    })
+
+    if (is.null(request_promise)) return(invisible(FALSE))
+
+    handled <- promises::catch(request_promise, function(error) {
+      display_chat_error(error)
+      NULL
+    })
+    promises::finally(handled, function() {
+      set_request_controls_busy(FALSE)
+    })
+    invisible(TRUE)
+  }
+
   observeEvent(input$chat_user_input, {
     req(chat_obj())
     req(nchar(trimws(input$chat_user_input)) > 0)
-    tryCatch(
-      chat_append("chat", chat_obj()$stream_async(input$chat_user_input)),
-      error = function(e) {
-        showNotification(
-          paste0("Chat error \u2014 ", conditionMessage(e),
-                 ". Check your API key and internet connection."),
-          type = "error", duration = 10
-        )
-      }
-    )
+    dispatch_chat_request(input$chat_user_input)
   })
 
   # ====== Voice: background Web Speech API ======
@@ -655,17 +764,7 @@ server <- function(input, output, session) {
     }
     last_voice_txt  <<- txt
     last_voice_time <<- now
-    chat_append_message("chat", list(role = "user", content = txt), chunk = FALSE)
-    tryCatch(
-      chat_append("chat", chat_obj()$stream_async(txt)),
-      error = function(e) {
-        showNotification(
-          paste0("Chat error \u2014 ", conditionMessage(e),
-                 ". Check your API key and internet connection."),
-          type = "error", duration = 10
-        )
-      }
-    )
+    dispatch_chat_request(txt, append_user_message = TRUE)
   })
 
   # ====== Initial Code Upload / Paste ======
@@ -891,6 +990,11 @@ server <- function(input, output, session) {
     nm    <- input$selected_plot
     plots <- isolate(rv$multi_plots)
     req(!is.null(plots), nm %in% names(plots))
+    if (isTRUE(request_in_flight())) {
+      session$sendCustomMessage("updateActiveThumb", isolate(rv$active_plot_name))
+      showNotification("Please wait for the current response to finish.", type = "warning")
+      return()
+    }
     # Guard: if already on this plot, skip redundant init_chat (priority:event fires on re-click)
     if (identical(nm, isolate(rv$active_plot_name))) return()
     rv$active_plot_name <- nm

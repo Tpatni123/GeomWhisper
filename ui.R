@@ -303,6 +303,15 @@ ui <- tagList(
         bslib::accordion_panel(
           title = tagList(tags$i(class = "fa-solid fa-comments"), " Chat with Plot"),
           value = "chat",
+          div(
+            class = "web-search-control",
+            checkboxInput(
+              "web_search_enabled",
+              label = tagList(tags$i(class = "fa-solid fa-globe"), " Web search"),
+              value = FALSE
+            ),
+            uiOutput("web_search_status")
+          ),
           shinychat::chat_ui("chat", height = "340px",
                              placeholder = "Ask about the plot or request a change\u2026")
         ),
