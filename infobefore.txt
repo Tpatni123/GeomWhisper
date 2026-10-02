@@ -5,7 +5,7 @@ Supports multiple LLM providers: OpenAI, Anthropic (Claude), Google Gemini,
 and Ollama (local).
 
 Requirements:
-  - R 4.4 or later (installer will download R 4.5.3 if needed)
+  - R 4.5 (installer will download R 4.5.3 if needed)
   - An API key for your chosen provider (or Ollama running locally)
   - Chrome or Edge browser for voice input
 

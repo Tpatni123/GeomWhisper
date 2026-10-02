@@ -3,7 +3,7 @@
 #define MyAppExeName "ggplot Voice Copilot Conv.bat"
 #define MyAppPublisher "ggplot Voice Copilot"
 #define MyAppURL ""
-; R version and URL are resolved dynamically at install time by querying the CRAN directory listing.
+; If no R 4.5.x is installed, setup downloads R 4.5.3 from CRAN (see DownloadAndInstallR).
 
 [Setup]
 AppName = {#MyAppName}
@@ -23,7 +23,12 @@ InfoBeforeFile = infobefore.txt
 InfoAfterFile = infoafter.txt
 Compression = lzma2/ultra64
 SolidCompression = yes
+; x64compatible needs Inno Setup 6.3+; older compilers only accept the now-deprecated x64.
+#if Ver >= EncodeVer(6, 3, 0)
+ArchitecturesInstallIn64BitMode = x64compatible
+#else
 ArchitecturesInstallIn64BitMode = x64
+#endif
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -42,6 +47,7 @@ Source: "{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "default.ico"; DestDir: "{app}"; Flags: ignoreversion
 Source: "setup.ico"; DestDir: "{app}"; Flags: ignoreversion
 Source: "global.R"; DestDir: "{app}"; Flags: ignoreversion
+Source: "install_deps.R"; DestDir: "{app}"; Flags: ignoreversion
 Source: "server.R"; DestDir: "{app}"; Flags: ignoreversion
 Source: "ui.R"; DestDir: "{app}"; Flags: ignoreversion
 Source: "start.bat"; DestDir: "{app}"; Flags: ignoreversion
@@ -53,6 +59,9 @@ Source: "www\styles.css"; DestDir: "{app}\www"; Flags: ignoreversion
 Source: "skills\nature.md"; DestDir: "{app}\skills"; Flags: ignoreversion
 Source: "skills\apa.md"; DestDir: "{app}\skills"; Flags: ignoreversion
 
+[UninstallDelete]
+Type: filesandordirs; Name: "{localappdata}\GeomWhisper"
+
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent shellexec
 
@@ -63,6 +72,7 @@ var
   DiagLog: String;
   GBestMajor, GBestMinor: Integer;
   GBestVersion: String;
+  GOtherVersion: String;
 
 procedure Log(Msg: String);
 begin
@@ -104,12 +114,21 @@ begin
   else
     mi := StrToIntDef(r, 0);
   Log('      Parsed: Major=' + IntToStr(ma) + ' Minor=' + IntToStr(mi));
-  if (ma > GBestMajor) or ((ma = GBestMajor) and (mi > GBestMinor)) then
+  // The pinned package snapshot is tested with R 4.5.x only.
+  if (ma = 4) and (mi = 5) then
   begin
-    GBestMajor := ma;
-    GBestMinor := mi;
-    GBestVersion := v;
-    Log('      -> NEW BEST: ' + v);
+    if GBestVersion = '' then
+    begin
+      GBestMajor := ma;
+      GBestMinor := mi;
+      GBestVersion := v;
+      Log('      -> USING: ' + v);
+    end;
+  end
+  else if GOtherVersion = '' then
+  begin
+    GOtherVersion := v;
+    Log('      -> not R 4.5.x, skipped');
   end;
 end;
 
@@ -173,6 +192,7 @@ begin
   GBestMajor := 0;
   GBestMinor := 0;
   GBestVersion := '';
+  GOtherVersion := '';
 
   Log('=== FindBestR START ===');
 
@@ -218,6 +238,7 @@ begin
   Log('=== FindBestR END ===');
 end;
 
+// Returns the usable R 4.5.x version, or another installed version for messages.
 function GetInstalledRVersion: String;
 var
   Ver: String;
@@ -225,31 +246,15 @@ begin
   if FindBestR(Ver) then
     Result := Ver
   else
-    Result := '';
+    Result := GOtherVersion;
 end;
 
 function RNeeded: Boolean;
 var
-  Ver, Rest: String;
-  DotPos, Major, Minor: Integer;
+  Ver: String;
 begin
-  Result := True;
-  if not FindBestR(Ver) then
-  begin
-    Log('RNeeded: No R found at all -> True');
-    Exit;
-  end;
-  DotPos := Pos('.', Ver);
-  if DotPos = 0 then Exit;
-  Major := StrToIntDef(Copy(Ver, 1, DotPos - 1), 0);
-  Rest := Copy(Ver, DotPos + 1, Length(Ver) - DotPos);
-  DotPos := Pos('.', Rest);
-  if DotPos > 0 then
-    Minor := StrToIntDef(Copy(Rest, 1, DotPos - 1), 0)
-  else
-    Minor := StrToIntDef(Rest, 0);
-  Result := not ((Major > 4) or ((Major = 4) and (Minor >= 4)));
-  Log('RNeeded: ver=' + Ver + ' Major=' + IntToStr(Major) + ' Minor=' + IntToStr(Minor) + ' needed=' + IntToStr(Ord(Result)));
+  Result := not FindBestR(Ver);
+  Log('RNeeded: R 4.5.x=' + Ver + ' other=' + GOtherVersion + ' needed=' + IntToStr(Ord(Result)));
 end;
 
 function DownloadAndInstallR: Boolean;
@@ -259,23 +264,19 @@ var
 begin
   Result := False;
   // Use %TEMP% so the path matches exactly what PowerShell writes to.
-  InstallerPath := GetEnv('TEMP') + '\R-latest-win.exe';
+  InstallerPath := GetEnv('TEMP') + '\R-4.5.3-win.exe';
 
-  // Step 1: Query CRAN's directory listing for the current release filename,
-  // then download it. Forces TLS 1.2 (required on older Windows).
+  // Step 1: Download R 4.5.3, the version the pinned package snapshot is tested with.
+  // Forces TLS 1.2 (required on older Windows).
   // Fallback chain: Invoke-WebRequest -> WebClient.DownloadFile -> BITS transfer.
-  // Exit code 0 = success; 1 = all download methods failed; 2 = version not found on page.
-  MsgBox('Downloading the latest R from CRAN. This may take a few minutes depending on your internet connection.' + #13#10 + 'Click OK to begin.', mbInformation, MB_OK);
+  // Exit code 0 = success; 1 = all download methods failed.
+  MsgBox('Downloading R 4.5.3 from CRAN. This may take a few minutes depending on your internet connection.' + #13#10 + 'Click OK to begin.', mbInformation, MB_OK);
   if not Exec('powershell.exe',
     '-NoProfile -NonInteractive -Command "' +
       '[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; ' +
       'try { ' +
-        '$page = (Invoke-WebRequest -Uri ''https://cran.r-project.org/bin/windows/base/'' -UseBasicParsing -ErrorAction Stop).Content; ' +
-        '$m = [regex]::Match($page, ''href=.(R-\d+\.\d+\.\d+-win\.exe).''); ' +
-        '$fn = $m.Groups[1].Value; ' +
-        'if (-not $fn) { exit 2 }; ' +
-        '$url = ''https://cran.r-project.org/bin/windows/base/'' + $fn; ' +
-        '$out = $env:TEMP + ''\R-latest-win.exe''; ' +
+        '$url = ''https://cran.r-project.org/bin/windows/base/old/4.5.3/R-4.5.3-win.exe''; ' +
+        '$out = $env:TEMP + ''\R-4.5.3-win.exe''; ' +
         '$ok = $false; ' +
         'try { Invoke-WebRequest -Uri $url -OutFile $out -UseBasicParsing -ErrorAction Stop; $ok = $true } catch {}; ' +
         'if (-not $ok) { try { (New-Object System.Net.WebClient).DownloadFile($url,$out); $ok = $true } catch {} }; ' +
@@ -285,7 +286,7 @@ begin
     '', SW_HIDE, ewWaitUntilTerminated, ExecResult) then
   begin
     MsgBox('Could not launch PowerShell to download R.' + #13#10 +
-           'Please install the latest R manually from https://cran.r-project.org', mbError, MB_OK);
+           'Please install R 4.5.3 manually from https://cran.r-project.org/bin/windows/base/old/4.5.3/', mbError, MB_OK);
     Exit;
   end;
   if ExecResult <> 0 then
@@ -295,8 +296,8 @@ begin
            '  - Firewall or antivirus blocking the download' + #13#10 +
            '  - No internet connection' + #13#10 +
            '  - Corporate proxy required' + #13#10 + #13#10 +
-           'Please install the latest R manually from:' + #13#10 +
-           'https://cran.r-project.org/bin/windows/base/' + #13#10 + #13#10 +
+           'Please install R 4.5.3 manually from:' + #13#10 +
+           'https://cran.r-project.org/bin/windows/base/old/4.5.3/' + #13#10 + #13#10 +
            'Then re-run this installer.', mbError, MB_OK);
     Exit;
   end;
@@ -320,8 +321,8 @@ begin
   if not Result then
   begin
     if GetInstalledRVersion <> '' then
-      MsgBox('R ' + GetInstalledRVersion + ' was found but R 4.4+ is required.' + #13#10 +
-             'Please install the latest R manually from https://cran.r-project.org', mbError, MB_OK)
+      MsgBox('R ' + GetInstalledRVersion + ' was found but R 4.5 is required.' + #13#10 +
+             'Please install R 4.5.3 manually from https://cran.r-project.org/bin/windows/base/old/4.5.3/', mbError, MB_OK)
     else
       MsgBox('R installation could not be verified.' + #13#10 +
              'Please install R manually from https://cran.r-project.org', mbError, MB_OK);
@@ -341,13 +342,13 @@ begin
       Log('RNeeded = True, showing dialog');
       SaveLog;
       if GetInstalledRVersion <> '' then
-        RStatusMsg := 'Version found on this computer: ' + GetInstalledRVersion + ' (too old).'
+        RStatusMsg := 'Version found on this computer: ' + GetInstalledRVersion + ' (not R 4.5).'
       else
         RStatusMsg := 'R was not detected on this computer.';
-      if MsgBox('R 4.4+ is required.' + #13#10 +
-                'This app needs R 4.4+ for ellmer, shinychat, and ggplot2 4.x.' + #13#10 +
+      if MsgBox('R 4.5 is required.' + #13#10 +
+                'GeomWhisper''s R packages are tested with R 4.5 (any 4.5.x release).' + #13#10 +
                 RStatusMsg + #13#10#13#10 +
-                'Click Yes to download and install the latest R from CRAN automatically (requires internet access).' + #13#10 +
+                'Click Yes to download and install R 4.5.3 from CRAN automatically (requires internet access). Other R versions stay installed.' + #13#10 +
                 'Click No to cancel and install R manually from https://cran.r-project.org',
                 mbConfirmation, MB_YESNO) = IDYES then
     begin
@@ -356,7 +357,7 @@ begin
     end
     else
     begin
-      MsgBox('Installation cancelled. Please install R 4.4+ from https://cran.r-project.org and re-run this installer.', mbError, MB_OK);
+      MsgBox('Installation cancelled. Please install R 4.5.3 from https://cran.r-project.org/bin/windows/base/old/4.5.3/ and re-run this installer.', mbError, MB_OK);
       Abort;
     end;
     end

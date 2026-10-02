@@ -1,6 +1,6 @@
 #!/bin/bash
 # GeomWhisper macOS launcher.
-# Finds R >= 4.4, uses a writable user package library, starts Shiny locally,
+# Finds R 4.5.x, uses a writable user package library, starts Shiny locally,
 # and opens a supported browser. No API keys are embedded in this bundle.
 
 set -u
@@ -59,15 +59,12 @@ rscript_version() {
         sed -n -E 's/.*version ([0-9]+\.[0-9]+\.[0-9]+).*/\1/p'
 }
 
-version_ge_4_4() {
-    local version="$1" major minor rest
-    major="${version%%.*}"
-    rest="${version#*.}"
-    minor="${rest%%.*}"
-    case "$major:$minor" in
-        *[!0-9:]*|:*) return 1 ;;
+# The pinned package snapshot is tested with R 4.5.x only.
+version_is_4_5() {
+    case "$1" in
+        4.5.*) return 0 ;;
+        *) return 1 ;;
     esac
-    [ "$major" -gt 4 ] || { [ "$major" -eq 4 ] && [ "$minor" -ge 4 ]; }
 }
 
 version_gt() {
@@ -108,7 +105,7 @@ $framework_candidate"
         version="$(rscript_version "$candidate" || true)"
         [ -n "$version" ] || version="0.0.0"
         log "R candidate: $candidate (version $version)"
-        if version_ge_4_4 "$version" && version_gt "$version" "$best_version"; then
+        if version_is_4_5 "$version" && version_gt "$version" "$best_version"; then
             best="$candidate"
             best_version="$version"
         fi
@@ -125,21 +122,13 @@ log "Architecture: $(uname -m); macOS: $(sw_vers -productVersion 2>/dev/null || 
 
 RSCRIPT="$(pick_rscript)"
 if [ -z "$RSCRIPT" ]; then
-    show_error "GeomWhisper requires R 4.4 or later, but a compatible R installation was not found.
+    show_error "GeomWhisper requires R 4.5 (any 4.5.x release), but it was not found.
 
-Install the current R release from https://cran.r-project.org/bin/macosx/ and then reopen GeomWhisper."
+Install R 4.5.3 from https://cran.r-project.org/bin/macosx/ and then reopen GeomWhisper."
     exit 1
 fi
 R_VERSION="$(rscript_version "$RSCRIPT")"
 log "Selected Rscript: $RSCRIPT (version $R_VERSION)"
-
-R_MAJOR_MINOR="$(printf '%s' "$R_VERSION" | awk -F. '{print $1 "." $2}')"
-if [ -z "${R_LIBS_USER:-}" ]; then
-    R_LIBS_USER="$HOME/Library/R/$R_MAJOR_MINOR/library"
-    export R_LIBS_USER
-fi
-mkdir -p "$R_LIBS_USER"
-log "User R library: $R_LIBS_USER"
 
 if /usr/bin/nc -z 127.0.0.1 "$PORT" >/dev/null 2>&1; then
     show_error "Port $PORT is already in use. Close the other GeomWhisper session or set GEOMWHISPER_PORT to another local port."
@@ -147,45 +136,8 @@ if /usr/bin/nc -z 127.0.0.1 "$PORT" >/dev/null 2>&1; then
 fi
 
 cat > "$R_START_FILE" <<'R_EOF'
-repos <- c(
-  CRAN = "https://cloud.r-project.org",
-  RStudio = "https://cran.rstudio.com",
-  Posit = "https://posit.r-universe.dev"
-)
-options(repos = repos)
-pkgs <- c("shiny", "ggplot2", "shinyjs", "jsonlite", "bslib",
-          "ellmer", "coro", "promises", "readxl", "magick", "shinychat")
-minimum_versions <- c(ellmer = "0.5.0", shinychat = "0.5.0")
-user_lib <- Sys.getenv("R_LIBS_USER")
-if (!nzchar(user_lib)) stop("R_LIBS_USER is not configured", call. = FALSE)
-if (!dir.exists(user_lib)) dir.create(user_lib, recursive = TRUE, showWarnings = FALSE)
-.libPaths(c(user_lib, .libPaths()))
-packages_needing_install <- function() {
-    missing <- pkgs[!vapply(pkgs, requireNamespace, logical(1), quietly = TRUE)]
-    outdated <- names(minimum_versions)[vapply(names(minimum_versions), function(pkg) {
-        requireNamespace(pkg, quietly = TRUE) &&
-            packageVersion(pkg) < package_version(minimum_versions[[pkg]])
-    }, logical(1))]
-    unique(c(missing, outdated))
-}
-install_needed <- packages_needing_install()
-if (length(install_needed)) {
-    cat("Installing or upgrading R packages:", paste(install_needed, collapse = ", "), "\n")
-    try(install.packages(install_needed, lib = user_lib, repos = repos), silent = FALSE)
-    install_needed <- packages_needing_install()
-}
-if (length(install_needed)) {
-    cat("Trying source installation for:", paste(install_needed, collapse = ", "), "\n")
-    try(install.packages(install_needed, lib = user_lib, repos = repos, type = "source"), silent = FALSE)
-    install_needed <- packages_needing_install()
-}
-if (length(install_needed)) {
-  stop(
-        "Could not install required R packages: ", paste(install_needed, collapse = ", "),
-    ". See the launch log and install Xcode Command Line Tools if source compilation is required.",
-    call. = FALSE
-  )
-}
+source(file.path(Sys.getenv("GEOMWHISPER_APP_DIR"), "install_deps.R"))
+invisible(use_geomwhisper_library())
 shiny::runApp(Sys.getenv("GEOMWHISPER_APP_DIR"),
               host = "127.0.0.1",
               port = as.integer(Sys.getenv("GEOMWHISPER_PORT")),
@@ -199,18 +151,20 @@ export GEOMWHISPER_PORT="$PORT"
 export GGPLOT_VOICE_COPILOT_DESKTOP=1
 : > "$SHINY_LOG"
 
-MISSING_COUNT="$($RSCRIPT --vanilla -e \
-    "pkgs<-c('shiny','ggplot2','shinyjs','jsonlite','bslib','ellmer','coro','promises','readxl','magick','shinychat');mins<-c(ellmer='0.5.0',shinychat='0.5.0');missing<-!vapply(pkgs,requireNamespace,logical(1),quietly=TRUE);old<-vapply(names(mins),function(p)requireNamespace(p,quietly=TRUE)&&packageVersion(p)<package_version(mins[[p]]),logical(1));cat(sum(missing)+sum(old))" \
-    2>/dev/null || echo 11)"
-case "$MISSING_COUNT" in
-    ''|*[!0-9]*) MISSING_COUNT=11 ;;
-esac
-if [ "$MISSING_COUNT" -gt 0 ]; then
-    STARTUP_TIMEOUT="${GEOMWHISPER_STARTUP_TIMEOUT:-600}"
-    log "First launch: $MISSING_COUNT R package(s) missing; allowing ${STARTUP_TIMEOUT}s for installation"
-else
-    STARTUP_TIMEOUT="${GEOMWHISPER_STARTUP_TIMEOUT:-90}"
+# Packages are installed in their own R process, before Shiny loads any of them.
+INSTALL_LOG="$LOG_DIR/install.log"
+log "Checking R packages (log: $INSTALL_LOG)"
+if ! "$RSCRIPT" --vanilla "$APP_DIR/install_deps.R" > "$INSTALL_LOG" 2>&1; then
+    INSTALL_TAIL="$(tail -n 20 "$INSTALL_LOG" 2>/dev/null || true)"
+    show_error "R packages could not be installed or upgraded.
+
+$INSTALL_TAIL
+
+Full log: $INSTALL_LOG"
+    exit 1
 fi
+log "R packages are ready"
+STARTUP_TIMEOUT="${GEOMWHISPER_STARTUP_TIMEOUT:-90}"
 
 log "Starting Shiny on 127.0.0.1:$PORT"
 "$RSCRIPT" --vanilla "$R_START_FILE" >> "$SHINY_LOG" 2>&1 &

@@ -37,20 +37,20 @@ ui <- tagList(
         # ── Model selector ── one conditionalPanel per provider ──
         conditionalPanel(
           condition = "input.llm_provider == 'openai'",
-          textInput("model_openai", "Model", value = "gpt-4o",
-                    placeholder = "e.g. gpt-4o, gpt-4o-mini, gpt-4.1-mini, o1, o3-mini",
+          textInput("model_openai", "Model", value = "gpt-5-mini",
+                    placeholder = "e.g. gpt-5-mini, gpt-5, gpt-6-astra",
                     width = "100%")
         ),
         conditionalPanel(
           condition = "input.llm_provider == 'anthropic'",
-          textInput("model_anthropic", "Model", value = "claude-3-5-sonnet-20241022",
-                    placeholder = "e.g. claude-opus-4-5, claude-3-5-sonnet-20241022",
+          textInput("model_anthropic", "Model", value = "claude-sonnet-4-6",
+                    placeholder = "e.g. claude-sonnet-4-6, claude-opus-4-7",
                     width = "100%")
         ),
         conditionalPanel(
           condition = "input.llm_provider == 'google'",
-          textInput("model_google", "Model", value = "gemini-2.0-flash",
-                    placeholder = "e.g. gemini-2.0-flash, gemini-1.5-pro",
+          textInput("model_google", "Model", value = "gemini-3.8-flash",
+                    placeholder = "e.g. gemini-3.8-flash, gemini-3.5-flash-lite",
                     width = "100%")
         ),
         conditionalPanel(

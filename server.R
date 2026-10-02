@@ -22,6 +22,7 @@ server <- function(input, output, session) {
     data_summary         = NULL,
     code_history         = list(),
     error_msg            = NULL,
+    eval_warnings        = character(),
     user_data            = NULL,
     active_df            = NULL,
     # Multi-LLM provider state
@@ -76,6 +77,12 @@ server <- function(input, output, session) {
   # Guard: prevents double init_chat() when reset_plot programmatically fires updateSelectInput
   skip_dataset_init_chat <- reactiveVal(FALSE)
 
+  plot_warnings <- reactiveVal(character())
+  all_plot_warnings <- reactive(classify_plot_warnings(c(rv$eval_warnings, plot_warnings())))
+  plot_render_count <- reactiveVal(0L)
+  # Render count at the latest chat plot update; the warning note waits for a later render.
+  warning_note_after <- reactiveVal(NULL)
+
   # ====== Tool: update the ggplot from inside the LLM response ======
   #
   # Called by ellmer automatically when the LLM emits a tool-use block.
@@ -116,13 +123,7 @@ server <- function(input, output, session) {
       missing_pkgs <- llm_pkgs[!sapply(llm_pkgs, requireNamespace, quietly = TRUE)]
       if (length(missing_pkgs) > 0) {
         message("[update_plot_fn] Installing missing packages: ", paste(missing_pkgs, collapse = ", "))
-        tryCatch(
-          install.packages(missing_pkgs,
-                           repos = c("https://cloud.r-project.org", "https://cran.rstudio.com",
-                                     "https://posit.r-universe.dev"),
-                           quiet = TRUE),
-          error = function(e) message("[update_plot_fn] Package install failed: ", conditionMessage(e))
-        )
+        install_missing_packages(missing_pkgs)
       }
     }
 
@@ -131,6 +132,7 @@ server <- function(input, output, session) {
             if (!result$success) paste0(" error=", result$error) else "")
 
     if (result$success) {
+      rv$eval_warnings <- result$warnings %||% character()
       hist <- isolate(rv$code_history)
       hist <- append(hist, list(list(code = current_code, plot_name = active_plot_name)))
       if (length(hist) > 20) hist <- hist[(length(hist) - 19):length(hist)]
@@ -178,6 +180,7 @@ server <- function(input, output, session) {
         rv$current_plot     <- plots[[1]]
       }
       rv$error_msg <- NULL
+      warning_note_after(isolate(plot_render_count()))
       message("[update_plot] SUCCESS — ", length(plots), " plot(s) updated")
 
       # Compute a git-style LCS diff (order-preserving, handles duplicates correctly)
@@ -222,7 +225,7 @@ server <- function(input, output, session) {
     
     # Get API key and model for current provider from stored multi-provider data
     api_key <- api_keys[[provider]] %||% ""
-    model   <- models[[provider]] %||% "gpt-4o"
+    model   <- models[[provider]] %||% "gpt-5-mini"
     
     journal_instructions <- isolate(rv$journal_instructions)
     data_summary         <- isolate(rv$data_summary)
@@ -346,7 +349,7 @@ server <- function(input, output, session) {
       anthropic     = input$model_anthropic,
       google        = input$model_google,
       ollama        = input$model_ollama,
-      "gpt-4o"
+      "gpt-5-mini"
     )
   }
 
@@ -506,6 +509,8 @@ server <- function(input, output, session) {
   observe({
     req(rv$configured)
     req(!rv$init_failed)
+    # The dataset observer creates the first chat once the data summary exists.
+    req(rv$data_summary)
     if (is.null(chat_obj())) init_chat()
   })
 
@@ -707,12 +712,21 @@ server <- function(input, output, session) {
     request_promise <- tryCatch({
       update_plot_tool <- create_update_plot_tool(guarded_update_plot)
       chat$set_tools(build_request_tools(provider, update_plot_tool, effective_search))
+      chat$set_system_prompt(with_search_guidance(chat$get_system_prompt(), effective_search))
       if (isTRUE(append_user_message)) {
         chat_append_message("chat", list(role = "user", content = text), chunk = FALSE)
       }
+      current_warnings <- isolate(all_plot_warnings())
+      model_text <- if (nrow(current_warnings)) {
+        labels <- ifelse(current_warnings$important, "may affect the requested change", "routine")
+        paste0(text, "\n\n(Warnings shown for the current plot: ",
+               paste0(current_warnings$message, " [", labels, "]", collapse = "; "), ")")
+      } else {
+        text
+      }
       chat_append(
         "chat",
-        chat$stream_async(text, tool_mode = "sequential", stream = "content")
+        chat$stream_async(model_text, tool_mode = "sequential", stream = "content")
       )
     }, error = function(error) {
       display_chat_error(error)
@@ -824,6 +838,7 @@ server <- function(input, output, session) {
     extra <- c(list(user_data = isolate(rv$active_df), user_data_path = isolate(rv$user_data_path)),
                isolate(rv$extra_datasets))
     result <- eval_multi_plots(code, extra_vars = extra)
+    rv$eval_warnings <- result$warnings %||% character()
 
     rv$code_history <- append(isolate(rv$code_history), list(list(code = rv$current_code, plot_name = isolate(rv$active_plot_name))))
     rv$current_code <- code
@@ -1019,45 +1034,94 @@ server <- function(input, output, session) {
   })
 
   # ====== Plot Rendering ======
-  output$main_plot <- renderPlot({
-    code           <- rv$current_code
-    active_df      <- rv$active_df
-    user_data_path <- rv$user_data_path
+  plot_eval_error <- reactiveVal(NULL)
 
-    p <- rv$current_plot
+  # Evaluated outside renderPlot: assigning rv$current_plot inside it re-invalidated the render mid-flight.
+  observe({
+    req(is.null(rv$current_plot))
+    extra  <- c(list(user_data = rv$active_df, user_data_path = rv$user_data_path),
+                isolate(rv$extra_datasets))
+    result <- eval_multi_plots(rv$current_code, extra_vars = extra)
+    rv$eval_warnings <- result$warnings %||% character()
+    if (result$success) {
+      active_name <- rv$active_plot_name %||% names(result$plots)[1]
+      plot_eval_error(NULL)
+      rv$current_plot <- result$plots[[active_name]] %||% result$plots[[1]]
+    } else {
+      plot_eval_error(result$error)
+    }
+  })
+
+  output$main_plot <- renderPlot({
+    p   <- rv$current_plot
+    err <- plot_eval_error()
+    req(!is.null(p) || !is.null(err))
+
     if (!is.null(p)) {
       message("[renderPlot] Printing stored plot. class: ", paste(class(p), collapse = ", "))
-      tryCatch(print(p), error = function(e) {
+      # renderPlot never reads plot_warnings, so setting it here cannot re-trigger this render.
+      tryCatch({
+        plot_warnings(print_plot_with_warnings(p))
+        plot_render_count(isolate(plot_render_count()) + 1L)
+      }, error = function(e) {
         message("[renderPlot] ERROR during print(p): ", conditionMessage(e))
         message("[renderPlot] Call: ", deparse(conditionCall(e)))
         stop(e)
       })
     } else {
-      extra  <- c(list(user_data = active_df, user_data_path = user_data_path),
-                  isolate(rv$extra_datasets))
-      result <- eval_multi_plots(code, extra_vars = extra)
-      if (result$success) {
-        active_name <- rv$active_plot_name %||% names(result$plots)[1]
-        plot_obj    <- result$plots[[active_name]] %||% result$plots[[1]]
-        isolate(rv$current_plot <- plot_obj)
-        print(plot_obj)
-      } else {
-        ggplot() +
-          annotate("text", x = 0.5, y = 0.5,
-                   label = paste("Plot Error:\n", result$error),
-                   size = 5, color = "red", hjust = 0.5) +
-          theme_void()
-      }
+      plot_warnings(character())
+      ggplot() +
+        annotate("text", x = 0.5, y = 0.5,
+                 label = paste("Plot Error:\n", err),
+                 size = 5, color = "red", hjust = 0.5) +
+        theme_void()
     }
   })
 
   # ====== Error Display ======
-  output$plot_error <- renderUI({
-    if (!is.null(rv$error_msg)) {
-      div(class = "error-msg",
-          tags$i(class = "fa fa-exclamation-triangle"),
-          " ", rv$error_msg)
+  observe({
+    after <- warning_note_after()
+    req(!is.null(after), !isTRUE(request_in_flight()), plot_render_count() > after)
+    warning_note_after(NULL)
+    warnings <- isolate(all_plot_warnings())
+    warnings <- warnings[warnings$important, , drop = FALSE]
+    if (nrow(warnings)) {
+      chat_append_message("chat", list(role = "assistant", content = paste0(
+        "⚠️ **Part of this change may not have been applied.** ggplot2 reported:\n\n",
+        paste0("- ", htmltools::htmlEscape(warnings$note), " (", htmltools::htmlEscape(warnings$message), ")",
+               collapse = "\n"),
+        "\n\nCheck the plot, and ask me to fix it if it does not look right."
+      )), chunk = FALSE)
     }
+  })
+
+  output$plot_error <- renderUI({
+    warnings  <- all_plot_warnings()
+    important <- warnings[warnings$important, , drop = FALSE]
+    routine   <- warnings[!warnings$important, , drop = FALSE]
+    warning_items <- function(rows) {
+      tags$ul(lapply(seq_len(nrow(rows)), function(i) {
+        tags$li(rows$note[i], tags$div(class = "warning-detail", rows$message[i]))
+      }))
+    }
+    tagList(
+      if (!is.null(rv$error_msg)) {
+        div(class = "error-msg",
+            tags$i(class = "fa fa-exclamation-triangle"),
+            " ", rv$error_msg)
+      },
+      if (nrow(important)) {
+        div(class = "warning-msg",
+            tags$strong(tags$i(class = "fa fa-triangle-exclamation"),
+                        " Part of the plot may not have been applied as requested."),
+            warning_items(important))
+      },
+      if (nrow(routine)) {
+        div(class = "warning-msg routine",
+            tags$strong(tags$i(class = "fa fa-circle-info"), " Note (usually expected):"),
+            warning_items(routine))
+      }
+    )
   })
 
   # ====== Code Display ======
@@ -1105,6 +1169,7 @@ server <- function(input, output, session) {
       extra <- c(list(user_data = isolate(rv$active_df), user_data_path = isolate(rv$user_data_path)),
                  isolate(rv$extra_datasets))
       result <- eval_multi_plots(restored, extra_vars = extra)
+      rv$eval_warnings <- result$warnings %||% character()
       if (result$success && length(result$plots) > 1) {
         rv$multi_plots <- result$plots
         # Sync rv_single_plots for every plot so tab-switching after undo shows

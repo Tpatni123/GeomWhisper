@@ -30,22 +30,29 @@ Set-Content -Path $LogFile -Value "[$(Get-Date)] Starting ggplot Voice Copilot (
 Log "Working dir: $AppDir"
 
 # -----------------------------------------------
-#  Find Rscript — mirrors GitHub version strategy:
-#  PATH -> 64-bit registry (all version subkeys)
-#  -> file system scan -> pick highest version
+#  Find Rscript: PATH, 64-bit registry (all version
+#  subkeys), and a file system scan; then pick the
+#  highest R 4.5.x. If none, offer to install 4.5.3.
 # -----------------------------------------------
-$Rscript = $null
+$R453Url = "https://cran.r-project.org/bin/windows/base/old/4.5.3/R-4.5.3-win.exe"
 
-$rInPath = Get-Command "Rscript" -ErrorAction SilentlyContinue
-if ($rInPath) {
-    $Rscript = $rInPath.Source
-    Log "Found Rscript in PATH: $Rscript"
+function Get-RVersion([string]$path) {
+    if ($path -match 'R-(\d+\.\d+\.\d+)') { return [Version]$Matches[1] }
+    $first = & $path --version 2>&1 | Select-Object -First 1
+    if ("$first" -match 'version (\d+\.\d+\.\d+)') { return [Version]$Matches[1] }
+    return $null
 }
 
-if (-not $Rscript) {
-    Log "Scanning for R installations (64-bit registry + file system)..."
-
+function Find-RInstalls {
     $rCandidates = @()
+
+    $rInPath = Get-Command "Rscript" -ErrorAction SilentlyContinue
+    if ($rInPath) {
+        $rCandidates += $rInPath.Source
+        Log "Found Rscript in PATH: $($rInPath.Source)"
+    }
+
+    Log "Scanning for R installations (64-bit registry + file system)..."
 
     # 1. 64-bit registry (avoids WOW64 redirection)
     $regSubPaths = @("SOFTWARE\R-core\R", "SOFTWARE\R-core\R64")
@@ -93,30 +100,88 @@ if (-not $Rscript) {
     $rCandidates = $rCandidates | Select-Object -Unique
     Log "R candidates found: $($rCandidates -join '; ')"
 
-    # Pick highest version by parsing R-X.Y.Z from path
-    $best = $rCandidates | Sort-Object {
-        if ($_ -match 'R-(\d+\.\d+\.\d+)') { [Version]$Matches[1] } else { [Version]"0.0.0" }
-    } -Descending | Select-Object -First 1
+    @(foreach ($c in $rCandidates) {
+        $v = Get-RVersion $c
+        if ($v) { [pscustomobject]@{ Path = $c; Version = $v } }
+    })
+}
 
-    if ($best) {
-        # Enforce R >= 4.4 (required for ellmer, shinychat, ggplot2 4.x packages)
-        if ($best -match 'R-(\d+)\.(\d+)') {
-            if ([int]$Matches[1] -lt 4 -or ([int]$Matches[1] -eq 4 -and [int]$Matches[2] -lt 4)) {
-                Log "ERROR: R < 4.4 found: $best"
-                Show-Error "R 4.4 or higher is required.`nFound: $best`n`nThis app uses packages (ellmer, shinychat, ggplot2 4.x) that require R 4.4+.`nPlease upgrade R from https://cran.r-project.org"
-                exit 1
-            }
+# The pinned package snapshot is tested with R 4.5.x, and packages are built per R minor version.
+function Select-R45($rFound) {
+    $rFound | Where-Object { $_.Version.Major -eq 4 -and $_.Version.Minor -eq 5 } |
+        Sort-Object Version -Descending | Select-Object -First 1
+}
+
+function Ask-YesNo([string]$msg) {
+    Log "QUESTION (dialog): $msg"
+    Add-Type -AssemblyName System.Windows.Forms | Out-Null
+    $answer = [System.Windows.Forms.MessageBox]::Show(
+        $msg,
+        "ggplot Voice Copilot - R 4.5 required",
+        [System.Windows.Forms.MessageBoxButtons]::YesNo,
+        [System.Windows.Forms.MessageBoxIcon]::Question
+    )
+    Log "Answer: $answer"
+    $answer -eq [System.Windows.Forms.DialogResult]::Yes
+}
+
+function Install-R453 {
+    $out = Join-Path $env:TEMP "R-4.5.3-win.exe"
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    # The progress bar makes Invoke-WebRequest many times slower in Windows PowerShell.
+    $ProgressPreference = 'SilentlyContinue'
+    Write-Host "Downloading R 4.5.3 from CRAN (about 90 MB). Please wait..."
+    Log "Downloading $R453Url"
+    $ok = $false
+    try { Invoke-WebRequest -Uri $R453Url -OutFile $out -UseBasicParsing -ErrorAction Stop; $ok = $true }
+    catch { Log "Invoke-WebRequest failed: $_" }
+    if (-not $ok) {
+        try { (New-Object System.Net.WebClient).DownloadFile($R453Url, $out); $ok = $true }
+        catch { Log "WebClient download failed: $_" }
+    }
+    if (-not $ok) {
+        try { Start-BitsTransfer -Source $R453Url -Destination $out -ErrorAction Stop; $ok = $true }
+        catch { Log "BITS download failed: $_" }
+    }
+    if (-not $ok) { return $false }
+
+    Write-Host "Installing R 4.5.3. Windows may ask for permission..."
+    Log "Running R installer: $out /VERYSILENT /NORESTART"
+    try {
+        $proc = Start-Process -FilePath $out -ArgumentList "/VERYSILENT", "/NORESTART" -Wait -PassThru -ErrorAction Stop
+        Log "R installer exit code: $($proc.ExitCode)"
+    } catch {
+        Log "R installer could not run: $_"
+        return $false
+    } finally {
+        Remove-Item $out -ErrorAction SilentlyContinue
+    }
+    $true
+}
+
+$rFound = Find-RInstalls
+$best = Select-R45 $rFound
+
+if (-not $best) {
+    $seen = (@($rFound) | Where-Object { $_ } | ForEach-Object { $_.Version.ToString() } | Select-Object -Unique) -join ', '
+    if (-not $seen) { $seen = 'no R installation' }
+    Log "R 4.5.x not found (found: $seen)"
+    if (Ask-YesNo "GeomWhisper requires R 4.5 (any 4.5.x release).`n`nFound: $seen`n`nDownload and install R 4.5.3 from CRAN now? It is about 90 MB and needs internet access. Other R versions stay installed.") {
+        if (Install-R453) {
+            $rFound = Find-RInstalls
+            $best = Select-R45 $rFound
         }
-        $Rscript = $best
-        Log "Selected Rscript: $Rscript"
     }
 }
 
-if (-not $Rscript) {
-    Log "ERROR: R not found"
-    Show-Error "R not found.`n`nInstall R from https://cran.r-project.org"
+if (-not $best) {
+    Log "ERROR: R 4.5.x not available"
+    Show-Error "GeomWhisper requires R 4.5 (any 4.5.x release; R 4.5.3 recommended), and it could not be found or installed.`n`nInstall R 4.5.3 from https://cran.r-project.org/bin/windows/base/old/4.5.3/ and relaunch GeomWhisper.`n`nDetails are in $LogFile"
     exit 1
 }
+
+$Rscript = $best.Path
+Log "Selected Rscript: $Rscript (R $($best.Version))"
 
 # -----------------------------------------------
 #  Free port 7475 if a previous instance is stuck
@@ -137,6 +202,27 @@ try {
 } catch { Log "Port cleanup error (non-fatal): $_" }
 
 # -----------------------------------------------
+#  Install or upgrade R packages in their own R
+#  process, before Shiny loads any package DLLs
+# -----------------------------------------------
+$installLog = "$LogDir\install.log"
+Set-Content -Path $installLog -Value ""
+Log "Checking R packages (log: $installLog)..."
+Write-Host ""
+Write-Host "[setup] Checking R packages. A first launch or an update can take several minutes."
+Write-Host "[setup] Please wait and do NOT close this window."
+Write-Host ""
+& $Rscript --vanilla "$AppDir\install_deps.R" 2>&1 | ForEach-Object { "$_" } | Tee-Object -FilePath $installLog
+$installExit = $LASTEXITCODE
+if ($installExit -ne 0) {
+    Log "ERROR: package setup failed (exit code $installExit)"
+    $lines = (Get-Content $installLog | Select-Object -Last 20) -join "`n"
+    Show-Error "R packages could not be installed or upgraded.`n`n$lines`n`nFull log: $installLog"
+    exit 1
+}
+Log "R packages are ready"
+
+# -----------------------------------------------
 #  Start Shiny (no auto-browser)
 # -----------------------------------------------
 Log "Starting Shiny app on port $Port (no auto-browser)..."
@@ -149,95 +235,11 @@ Write-Host ""
 $rStartFile = "$LogDir\shiny_start.R"
 $shinyLog   = "$LogDir\shiny.log"
 
-Set-Content -Path $rStartFile -Encoding ascii -Value @"
-pkgs <- c('shiny','ggplot2','shinyjs','jsonlite','bslib','ellmer','coro','promises','readxl','magick','shinychat')
-miss <- pkgs[!sapply(pkgs, requireNamespace, quietly = TRUE)]
-minimum_versions <- c(ellmer='0.5.0', shinychat='0.5.0')
-outdated <- names(minimum_versions)[vapply(names(minimum_versions), function(pkg) {
-    requireNamespace(pkg, quietly=TRUE) && packageVersion(pkg) < package_version(minimum_versions[[pkg]])
-}, logical(1))]
-install_needed <- unique(c(miss, outdated))
-if (length(install_needed)) {
-    cat('Installing or upgrading packages:', paste(install_needed, collapse=', '), '\n')
-  usr_lib <- Sys.getenv('R_LIBS_USER')
-  if (nchar(usr_lib) == 0) usr_lib <- file.path(Sys.getenv('APPDATA'), 'R', 'library')
-  if (!dir.exists(usr_lib)) dir.create(usr_lib, recursive = TRUE, showWarnings = FALSE)
-  .libPaths(c(usr_lib, .libPaths()))
-  
-  # Try multiple CRAN mirrors for reliability
-  repos <- c(
-    'https://cloud.r-project.org',
-    'https://cran.rstudio.com',
-    'https://posit.r-universe.dev'
-  )
-  
-  # Try binary first, then source if binaries unavailable
-  cat('Attempting to install packages...\\n')
-    install.packages(install_needed, repos = repos, lib = usr_lib, type = 'both', quiet = FALSE)
-  
-  # Verify installation succeeded
-    still_miss <- install_needed[!sapply(install_needed, requireNamespace, quietly = TRUE)]
-  if (length(still_miss) > 0) {
-    cat('\\nWARNING: Some packages could not be installed from binaries.\\n')
-    cat('Attempting source installation...\\n')
-    install.packages(still_miss, repos = repos, lib = usr_lib, type = 'source', quiet = FALSE)
-    
-    # Final check
-    final_miss <- still_miss[!sapply(still_miss, requireNamespace, quietly = TRUE)]
-    if (length(final_miss) > 0) {
-      cat('\\nERROR: Failed to install packages:', paste(final_miss, collapse=', '), '\\n')
-      cat('This may be because:\\n')
-      cat('  1. No binary packages available for your R version\\n')
-      cat('  2. Rtools not installed (needed for source compilation)\\n')
-      cat('  3. Network/firewall issues\\n')
-      cat('\\nSuggestions:\\n')
-      cat('  - Use the latest R from https://cran.r-project.org/ (R 4.4+ required)\\n')
-      cat('  - Install Rtools: https://cran.r-project.org/bin/windows/Rtools/\\n')
-      cat('  - Check your internet connection\\n')
-      quit(status = 1)
-    }
-  }
-    version_failures <- names(minimum_versions)[vapply(names(minimum_versions), function(pkg) {
-        packageVersion(pkg) < package_version(minimum_versions[[pkg]])
-    }, logical(1))]
-    if (length(version_failures)) {
-        cat('ERROR: Required package versions were not installed:', paste(version_failures, collapse=', '), '\n')
-        quit(status = 1)
-    }
-    cat('All packages installed or upgraded successfully\n')
-}
-shiny::runApp('.', host = '127.0.0.1', port = $Port, launch.browser = FALSE)
-"@
+Set-Content -Path $rStartFile -Encoding ascii -Value "source('install_deps.R'); invisible(use_geomwhisper_library()); shiny::runApp('.', host = '127.0.0.1', port = $Port, launch.browser = FALSE)"
 
 # Clear old log so stale content never shows in error dialogs
 Set-Content -Path $shinyLog -Value ""
-
-# -----------------------------------------------
-#  Pre-check: count missing packages so we can
-#  set an appropriate startup timeout before
-#  the long Shiny process is launched.
-#  (First-run install of 11 packages can take
-#   2-5 min on a slow connection — 60s is too short)
-# -----------------------------------------------
-$missCount = 0
-try {
-    $checkExpr = 'pkgs<-c(''shiny'',''ggplot2'',''shinyjs'',''jsonlite'',''bslib'',''ellmer'',''coro'',''promises'',''readxl'',''magick'',''shinychat'');mins<-c(ellmer=''0.5.0'',shinychat=''0.5.0'');miss<-!sapply(pkgs,requireNamespace,quietly=TRUE);old<-vapply(names(mins),function(p)requireNamespace(p,quietly=TRUE)&&packageVersion(p)<package_version(mins[[p]]),logical(1));cat(sum(miss)+sum(old))'
-    $result    = & $Rscript --vanilla -e $checkExpr 2>$null
-    $missCount = [int]($result -replace '[^0-9]', '')
-} catch { $missCount = 0 }
-
-if ($missCount -gt 0) {
-    Log "First-run: $missCount package(s) missing — extended startup timeout (300s)"
-    Write-Host ""
-    Write-Host "[setup] First-run detected: installing $missCount R package(s)."
-    Write-Host "[setup] This may take 2-5 minutes on a slow connection."
-    Write-Host "[setup] Please wait and do NOT close this window."
-    Write-Host ""
-    $PollMax = 300
-} else {
-    Log "All packages present — standard startup timeout (60s)"
-    $PollMax = 60
-}
+$PollMax = 60
 
 # Launch via cmd /c — like RInno's run.js approach, no PS redirect conflicts
 # WindowStyle Hidden + RedirectStandardOutput cannot be combined in Start-Process

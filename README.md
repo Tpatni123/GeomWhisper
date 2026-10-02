@@ -38,7 +38,7 @@ Browser (Shiny UI)
 
 | Tool | Version | Install |
 |------|---------|---------|
-| **R** | ≥ 4.4 | https://cran.r-project.org |
+| **R** | 4.5.x (tested with 4.5.3) | https://cran.r-project.org |
 | **Chrome or Edge** | Latest | Required only for voice input; typed chat works without voice support |
 | **API key** | Cloud providers only | Required for OpenAI, Anthropic, or Google Gemini |
 | **Ollama** | Latest | Required only when using a local Ollama model |
@@ -49,11 +49,12 @@ Browser (Shiny UI)
 
 **Windows:** Run [GeomWhisper-Setup-1.0.1.exe](installer/GeomWhisper-Setup-1.0.1.exe).
 
-- Detects whether R 4.4 or later is installed and, when necessary, offers to
-     download and install the current R release from CRAN.
+- Detects whether R 4.5 is installed and, when necessary, offers to
+     download and install R 4.5.3 from CRAN.
 - Launches GeomWhisper after installation. On its first launch, the application
-     installs any missing R packages; this can take several minutes and requires
-     internet access.
+     installs its R packages into its own library
+     (`%LOCALAPPDATA%\GeomWhisper\R\<R version>\library`), separate from your
+     personal R library; this can take a few minutes and requires internet access.
 
 ### 2. Choose your LLM provider
 

@@ -8,7 +8,7 @@ This directory contains the files required to build the macOS application bundle
 - Release tag: `v1.0.1`
 - Release commit: `754226ac7f1ed440894cfdca8addae4693925fd9`
 - Minimum macOS version: macOS 11
-- R requirement: R 4.4 or later
+- R requirement: R 4.5 (any 4.5.x release; tested with 4.5.3)
 - Supported Mac architectures: Apple Silicon and Intel, with the matching R distribution installed
 
 Each build records its source repository and commit in `GeomWhisper.app/Contents/Resources/app/SOURCE_COMMIT.txt`.
@@ -55,9 +55,9 @@ installer/macos/dist/SHA256SUMS.txt
 
 ## Installation
 
-1. Install R 4.4 or later from <https://cran.r-project.org/bin/macosx/> using the installer that matches the Mac's architecture.
+1. Install R 4.5.3 from <https://cran.r-project.org/bin/macosx/> using the installer that matches the Mac's architecture.
 2. Open the DMG and drag `GeomWhisper.app` to Applications. Alternatively, unzip the ZIP and move the application to Applications.
-3. Open GeomWhisper. On first launch, allow time for missing R packages to install in the user's R library.
+3. Open GeomWhisper. On first launch, allow time for its R packages to install in its own library (`~/Library/Application Support/GeomWhisper/R/<R version>/library`), separate from the user's R library.
 4. Select an available hosted model provider or a local Ollama model in the application.
 
 Internet access is required when R packages are missing. Chrome or Edge is recommended for voice input; typed chat can be used in another browser.

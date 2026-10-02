@@ -14,7 +14,7 @@ RESOURCES_DIR="$CONTENTS/Resources"
 APP_SOURCE="$RESOURCES_DIR/app"
 ZIP_PATH="$DIST_DIR/GeomWhisper-macOS-1.0.1.zip"
 
-required_files="global.R server.R ui.R README.md LICENSE CITATION.cff www/speech.js www/styles.css skills/apa.md skills/nature.md images/geomwhisper-upload-workflow.png"
+required_files="global.R install_deps.R server.R ui.R README.md LICENSE CITATION.cff www/speech.js www/styles.css skills/apa.md skills/nature.md images/geomwhisper-upload-workflow.png"
 for relative_path in $required_files; do
     if [ ! -f "$SOURCE_DIR/$relative_path" ]; then
         echo "ERROR: missing required source file: $SOURCE_DIR/$relative_path" >&2
@@ -48,6 +48,7 @@ cp "$SCRIPT_DIR/icon.icns" "$RESOURCES_DIR/icon.icns"
 chmod 755 "$MACOS_DIR/launcher"
 
 cp "$SOURCE_DIR/global.R" "$APP_SOURCE/global.R"
+cp "$SOURCE_DIR/install_deps.R" "$APP_SOURCE/install_deps.R"
 cp "$SOURCE_DIR/server.R" "$APP_SOURCE/server.R"
 cp "$SOURCE_DIR/ui.R" "$APP_SOURCE/ui.R"
 cp "$SOURCE_DIR/README.md" "$APP_SOURCE/README.md"
