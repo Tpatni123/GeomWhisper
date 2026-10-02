@@ -1,5 +1,5 @@
 #define MyAppName "ggplot Voice Copilot (Multi-LLM)"
-#define MyAppVersion "1.0.1"
+#define MyAppVersion "1.0.2"
 #define MyAppExeName "ggplot Voice Copilot Conv.bat"
 #define MyAppPublisher "ggplot Voice Copilot"
 #define MyAppURL ""
